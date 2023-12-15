@@ -1,6 +1,8 @@
 package com.shiviraj.iot.authService.service
 
+import com.shiviraj.iot.authService.config.AppConfig
 import com.shiviraj.iot.authService.controller.view.UserLoginDetails
+import com.shiviraj.iot.authService.controller.view.ValidateTokenResponse
 import com.shiviraj.iot.authService.exception.IOTError
 import com.shiviraj.iot.authService.model.IdType
 import com.shiviraj.iot.authService.model.Token
@@ -23,9 +25,9 @@ import java.util.*
 class TokenService(
     private val tokenRepository: TokenRepository,
     private val idGeneratorService: IdGeneratorService,
-    private val authService: AuthService
+    private val authService: AuthService,
+    private val appConfig: AppConfig
 ) {
-    private val SECRET = System.getenv("SECRET_KEY") ?: "sdfslkdjflsdfjsdofjpsfjlskdflksdfjisodfjsldfmlsdflksdgks"
 
     fun login(userLoginDetails: UserLoginDetails): Mono<Token> {
         return authService.verifyCredentials(userLoginDetails)
@@ -46,12 +48,15 @@ class TokenService(
             }
     }
 
-    fun validate(token: String): Mono<Boolean> {
+    fun validate(token: String): Mono<ValidateTokenResponse> {
         return tokenRepository.findByValue(token)
             .map {
                 try {
-                    Jwts.parserBuilder().setSigningKey(getSignKey()).build().parseClaimsJws(it.value)
-                    true
+                    val parseClaimsJws = Jwts.parserBuilder()
+                        .setSigningKey(getSignKey())
+                        .build()
+                        .parseClaimsJws(it.value)
+                    ValidateTokenResponse(parseClaimsJws.body.get("userId", String::class.java))
                 } catch (e: Exception) {
                     throw UnAuthorizedException(IOTError.IOT0103)
                 }
@@ -63,7 +68,7 @@ class TokenService(
 
     private fun generateToken(userDetails: UserDetails): String {
         return Jwts.builder()
-            .setClaims(hashMapOf<String, Any>())
+            .setClaims(hashMapOf<String, Any>("userId" to userDetails.userId))
             .setSubject(userDetails.userId)
             .setIssuedAt(Date(System.currentTimeMillis()))
             .setExpiration(Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7))
@@ -71,7 +76,7 @@ class TokenService(
     }
 
     private fun getSignKey(): Key {
-        val keyBytes = Decoders.BASE64.decode(SECRET)
+        val keyBytes = Decoders.BASE64.decode(appConfig.secretKey)
         return Keys.hmacShaKeyFor(keyBytes)
     }
 }

@@ -8,7 +8,6 @@ import org.springframework.context.annotation.ComponentScan
 @SpringBootApplication
 @ComponentScan(basePackages = ["com.shiviraj.iot.utils"])
 @ConfigurationPropertiesScan
-
 class AuthServiceApplication {
     companion object {
         @JvmStatic

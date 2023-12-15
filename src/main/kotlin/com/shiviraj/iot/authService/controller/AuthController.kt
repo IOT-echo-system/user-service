@@ -25,7 +25,7 @@ class AuthController(private val authService: AuthService, private val tokenServ
     }
 
     @GetMapping("/validate")
-    fun validateToken(@RequestHeader("Authorization") token: String): Mono<ValidateTokenResponse> {
-        return tokenService.validate(token).map { ValidateTokenResponse(it) }
+    fun validateToken(@RequestHeader("Authorization") token: String = ""): Mono<ValidateTokenResponse> {
+        return tokenService.validate(token)
     }
 }

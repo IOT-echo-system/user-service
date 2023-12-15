@@ -1,6 +1,7 @@
 package com.shiviraj.iot.authService.service
 
 import com.shiviraj.iot.authService.builder.UserDetailsBuilder
+import com.shiviraj.iot.authService.config.AppConfig
 import com.shiviraj.iot.authService.controller.view.UserLoginDetails
 import com.shiviraj.iot.authService.exception.IOTError
 import com.shiviraj.iot.authService.model.IdType
@@ -25,11 +26,13 @@ class TokenServiceTest {
     private val tokenRepository = mockk<TokenRepository>()
     private val idGeneratorService = mockk<IdGeneratorService>()
     private val authService = mockk<AuthService>()
+    private val appConfig = AppConfig(secretKey = "secretkeysecretkeysecretkeysecretkeysecretkeysecretkeysecretkey")
 
     private val tokenService = TokenService(
         tokenRepository = tokenRepository,
         idGeneratorService = idGeneratorService,
-        authService = authService
+        authService = authService,
+        appConfig = appConfig
     )
 
     @BeforeEach
@@ -97,5 +100,4 @@ class TokenServiceTest {
             }
         }
     }
-
 }

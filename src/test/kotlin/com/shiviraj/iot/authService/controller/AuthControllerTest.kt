@@ -69,12 +69,12 @@ class AuthControllerTest {
 
     @Test
     fun `should validate token`() {
-        every { tokenService.validate(any()) } returns Mono.just(true)
+        every { tokenService.validate(any()) } returns Mono.just(ValidateTokenResponse(userId = "userId"))
 
         val response = authController.validateToken("token")
 
         assertNextWith(response) {
-            it shouldBe ValidateTokenResponse(true)
+            it shouldBe ValidateTokenResponse(userId = "userId")
             verify(exactly = 1) {
                 tokenService.validate("token")
             }
