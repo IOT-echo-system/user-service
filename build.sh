@@ -1,7 +1,7 @@
 #!/bin/bash
 tag=$(curl https://hub.docker.com/v2/repositories/shiviraj/auth-service/tags | jq -r '.results | sort_by(.last_updated) | last(.[-2]).name')
 
-if [ -z "$tag" ]; then
+if [ $tag == "null" ]; then
     echo "Failed to retrieve tags from Docker Hub. Setting default as 0.0.0"
     tag=0.0.0
 fi
