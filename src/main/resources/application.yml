@@ -4,7 +4,7 @@ server:
 spring:
   data:
     mongodb:
-      uri: ${MONGODB_URL:mongodb://localhost:27018/auth}
+      uri: ${MONGODB_URL}/auth
   application:
     name: AUTH-SERVICE
 
@@ -12,8 +12,10 @@ eureka:
   instance:
     prefer-ip-address: true
   client:
+    register-with-eureka: false
+    fetch-registry: false
     service-url:
-      defaultZone: ${SERVICE_REGISTRY_URL:http://localhost:8761}/eureka
+      defaultZone: ${SERVICE_REGISTRY_URL}/eureka
 app:
   env:
-    secret-key: ${SECRET_KEY:asdfsdfsdklskafjosjlsdnglkshgpeowirwoerlksdofhuoiewflksdnflksdajgoiwe}
+    secret-key: ${SECRET_KEY}

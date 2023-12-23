@@ -48,12 +48,14 @@ class AuthService(
 
     fun verifyCredentials(userDetails: UserLoginDetails): Mono<UserDetails> {
         return authRepository.findByEmail(userDetails.email)
-            .map {
-                val matches = passwordEncoder.matches(userDetails.password, it.password)
-                if (matches) {
-                    it
-                } else {
-                    throw BadDataException(IOTError.IOT0102)
+            .flatMap { details ->
+                val matches = passwordEncoder.matches(userDetails.password, details.password)
+                Mono.deferContextual {
+                    if (matches) {
+                        Mono.just(details)
+                    } else {
+                        Mono.error(BadDataException(IOTError.IOT0102))
+                    }
                 }
             }
             .switchIfEmpty {

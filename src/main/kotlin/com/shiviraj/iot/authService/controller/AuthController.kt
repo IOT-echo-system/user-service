@@ -7,6 +7,7 @@ import com.shiviraj.iot.authService.controller.view.ValidateTokenResponse
 import com.shiviraj.iot.authService.model.UserDetails
 import com.shiviraj.iot.authService.service.AuthService
 import com.shiviraj.iot.authService.service.TokenService
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 
@@ -15,12 +16,12 @@ import reactor.core.publisher.Mono
 class AuthController(private val authService: AuthService, private val tokenService: TokenService) {
 
     @PostMapping("/sign-up")
-    fun signUp(@RequestBody userDetails: UserSignUpDetails): Mono<UserDetails> {
+    fun signUp(@RequestBody @Validated userDetails: UserSignUpDetails): Mono<UserDetails> {
         return authService.register(userDetails)
     }
 
     @PostMapping("/login")
-    fun login(@RequestBody userDetails: UserLoginDetails): Mono<TokenResponse> {
+    fun login(@RequestBody @Validated userDetails: UserLoginDetails): Mono<TokenResponse> {
         return tokenService.login(userDetails).map { TokenResponse(it.value) }
     }
 

@@ -8,9 +8,12 @@ import com.shiviraj.iot.authService.model.IdType
 import com.shiviraj.iot.authService.model.Token
 import com.shiviraj.iot.authService.model.UserDetails
 import com.shiviraj.iot.authService.repository.TokenRepository
+import com.shiviraj.iot.loggingstarter.logOnError
 import com.shiviraj.iot.loggingstarter.logOnSuccess
 import com.shiviraj.iot.userService.exceptions.UnAuthorizedException
 import com.shiviraj.iot.utils.service.IdGeneratorService
+import com.shiviraj.iot.utils.utils.createMono
+import com.shiviraj.iot.utils.utils.createMonoError
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.SignatureAlgorithm
 import io.jsonwebtoken.io.Decoders
@@ -42,7 +45,7 @@ class TokenService(
                         searchableFields = mapOf("userId" to userDetails.userId)
                     )
                     .logOnSuccess(
-                        message = "Failed to logg in user",
+                        message = "Failed to log in user",
                         searchableFields = mapOf("userId" to userDetails.userId)
                     )
             }
@@ -50,20 +53,22 @@ class TokenService(
 
     fun validate(token: String): Mono<ValidateTokenResponse> {
         return tokenRepository.findByValue(token)
-            .map {
+            .flatMap {
                 try {
                     val parseClaimsJws = Jwts.parserBuilder()
                         .setSigningKey(getSignKey())
                         .build()
                         .parseClaimsJws(it.value)
-                    ValidateTokenResponse(parseClaimsJws.body.get("userId", String::class.java))
+                    createMono(ValidateTokenResponse(parseClaimsJws.body.get("userId", String::class.java)))
                 } catch (e: Exception) {
-                    throw UnAuthorizedException(IOTError.IOT0103)
+                    createMonoError(UnAuthorizedException(IOTError.IOT0103))
                 }
             }
             .switchIfEmpty {
                 Mono.error(UnAuthorizedException(IOTError.IOT0103))
             }
+            .logOnSuccess(message = "Successfully validated authorization")
+            .logOnError(errorCode = IOTError.IOT0103.errorCode, errorMessage = "Failed to validate authorization")
     }
 
     private fun generateToken(userDetails: UserDetails): String {
