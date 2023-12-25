@@ -77,7 +77,7 @@ class TokenService(
             .setSubject(userDetails.userId)
             .setIssuedAt(Date(System.currentTimeMillis()))
             .setExpiration(Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7))
-            .signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
+            .signWith(getSignKey(), SignatureAlgorithm.HS256).compact()
     }
 
     private fun getSignKey(): Key {
