@@ -1,7 +1,7 @@
 package com.shiviraj.iot.authService.service
 
-import com.shiviraj.iot.authService.controller.view.UserLoginDetails
-import com.shiviraj.iot.authService.controller.view.UserSignUpDetails
+import com.shiviraj.iot.authService.controller.view.UserLoginRequest
+import com.shiviraj.iot.authService.controller.view.UserSignUpRequest
 import com.shiviraj.iot.authService.exception.IOTError
 import com.shiviraj.iot.authService.model.IdType
 import com.shiviraj.iot.authService.model.UserDetails
@@ -21,7 +21,7 @@ class AuthService(
     private val idGeneratorService: IdGeneratorService,
     private val passwordEncoder: PasswordEncoder,
 ) {
-    fun register(userDetails: UserSignUpDetails): Mono<UserDetails> {
+    fun register(userDetails: UserSignUpRequest): Mono<UserDetails> {
         return authRepository.existsByEmail(userDetails.email)
             .flatMap {
                 if (it) {
@@ -46,7 +46,7 @@ class AuthService(
             }
     }
 
-    fun verifyCredentials(userDetails: UserLoginDetails): Mono<UserDetails> {
+    fun verifyCredentials(userDetails: UserLoginRequest): Mono<UserDetails> {
         return authRepository.findByEmail(userDetails.email)
             .flatMap { details ->
                 val matches = passwordEncoder.matches(userDetails.password, details.password)

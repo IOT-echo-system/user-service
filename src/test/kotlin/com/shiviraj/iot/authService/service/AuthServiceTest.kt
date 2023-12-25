@@ -1,8 +1,8 @@
 package com.shiviraj.iot.authService.service
 
 import com.shiviraj.iot.authService.builder.UserDetailsBuilder
-import com.shiviraj.iot.authService.controller.view.UserLoginDetails
-import com.shiviraj.iot.authService.controller.view.UserSignUpDetails
+import com.shiviraj.iot.authService.controller.view.UserLoginRequest
+import com.shiviraj.iot.authService.controller.view.UserSignUpRequest
 import com.shiviraj.iot.authService.exception.IOTError
 import com.shiviraj.iot.authService.model.IdType
 import com.shiviraj.iot.authService.repository.AuthRepository
@@ -43,7 +43,7 @@ class AuthServiceTest {
 
     @Test
     fun `should not register a new user`() {
-        val userDetails = UserSignUpDetails(name = "name", email = "email", password = "password")
+        val userDetails = UserSignUpRequest(name = "name", email = "email", password = "password")
 
         every { authRepository.existsByEmail(any()) } returns Mono.just(true)
 
@@ -62,7 +62,7 @@ class AuthServiceTest {
 
     @Test
     fun `should register a new user`() {
-        val userDetails = UserSignUpDetails(name = "name", email = "email", password = "password")
+        val userDetails = UserSignUpRequest(name = "name", email = "email", password = "password")
         val user = UserDetailsBuilder().build()
 
         every { authRepository.existsByEmail(any()) } returns Mono.just(false)
@@ -92,7 +92,7 @@ class AuthServiceTest {
 
     @Test
     fun `should verify credentials`() {
-        val userDetails = UserLoginDetails(email = "email", password = "password")
+        val userDetails = UserLoginRequest(email = "email", password = "password")
         val user = UserDetailsBuilder(email = "email", password = "encodedPassword").build()
 
         every { authRepository.findByEmail(any()) } returns Mono.just(user)
@@ -111,7 +111,7 @@ class AuthServiceTest {
 
     @Test
     fun `should give mono error if invalid email while verifying credentials`() {
-        val userDetails = UserLoginDetails(email = "email", password = "password")
+        val userDetails = UserLoginRequest(email = "email", password = "password")
 
         every { authRepository.findByEmail(any()) } returns Mono.empty()
 
@@ -127,7 +127,7 @@ class AuthServiceTest {
 
     @Test
     fun `should give mono error if invalid password while verifying credentials`() {
-        val userDetails = UserLoginDetails(email = "email", password = "password")
+        val userDetails = UserLoginRequest(email = "email", password = "password")
         val user = UserDetailsBuilder(email = "email", password = "encodedPassword").build()
 
         every { authRepository.findByEmail(any()) } returns Mono.just(user)

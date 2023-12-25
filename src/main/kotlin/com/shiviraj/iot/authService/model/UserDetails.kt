@@ -1,6 +1,6 @@
 package com.shiviraj.iot.authService.model
 
-import com.shiviraj.iot.authService.controller.view.UserSignUpDetails
+import com.shiviraj.iot.authService.controller.view.UserSignUpRequest
 import org.bson.types.ObjectId
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.TypeAlias
@@ -17,11 +17,12 @@ data class UserDetails(
     @Indexed(unique = true)
     val userId: UserId,
     val name: String,
+    @Indexed(unique = true)
     val email: String,
     val password: String,
 ) {
     companion object {
-        fun from(userId: String, userDetails: UserSignUpDetails, password: String): UserDetails {
+        fun from(userId: String, userDetails: UserSignUpRequest, password: String): UserDetails {
             return UserDetails(
                 userId = userId,
                 name = userDetails.name,

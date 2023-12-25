@@ -1,7 +1,7 @@
 package com.shiviraj.iot.authService.service
 
 import com.shiviraj.iot.authService.config.AppConfig
-import com.shiviraj.iot.authService.controller.view.UserLoginDetails
+import com.shiviraj.iot.authService.controller.view.UserLoginRequest
 import com.shiviraj.iot.authService.controller.view.ValidateTokenResponse
 import com.shiviraj.iot.authService.exception.IOTError
 import com.shiviraj.iot.authService.model.IdType
@@ -32,8 +32,8 @@ class TokenService(
     private val appConfig: AppConfig
 ) {
 
-    fun login(userLoginDetails: UserLoginDetails): Mono<Token> {
-        return authService.verifyCredentials(userLoginDetails)
+    fun login(userLoginRequest: UserLoginRequest): Mono<Token> {
+        return authService.verifyCredentials(userLoginRequest)
             .flatMap { userDetails ->
                 val value = generateToken(userDetails)
                 idGeneratorService.generateId(IdType.TOKEN_ID)

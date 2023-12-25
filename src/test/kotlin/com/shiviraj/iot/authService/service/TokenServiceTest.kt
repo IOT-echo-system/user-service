@@ -2,7 +2,7 @@ package com.shiviraj.iot.authService.service
 
 import com.shiviraj.iot.authService.builder.UserDetailsBuilder
 import com.shiviraj.iot.authService.config.AppConfig
-import com.shiviraj.iot.authService.controller.view.UserLoginDetails
+import com.shiviraj.iot.authService.controller.view.UserLoginRequest
 import com.shiviraj.iot.authService.exception.IOTError
 import com.shiviraj.iot.authService.model.IdType
 import com.shiviraj.iot.authService.model.Token
@@ -47,7 +47,7 @@ class TokenServiceTest {
 
     @Test
     fun `should create token if login credentials are correct`() {
-        val credentials = UserLoginDetails(email = "email", password = "password")
+        val credentials = UserLoginRequest(email = "email", password = "password")
         val user = UserDetailsBuilder(userId = "userId", email = "email", password = "encodedPassword").build()
         val token = Token(tokenId = "001", value = "token value")
 

@@ -1,10 +1,7 @@
 package com.shiviraj.iot.authService.controller
 
 import com.shiviraj.iot.authService.builder.UserDetailsBuilder
-import com.shiviraj.iot.authService.controller.view.TokenResponse
-import com.shiviraj.iot.authService.controller.view.UserLoginDetails
-import com.shiviraj.iot.authService.controller.view.UserSignUpDetails
-import com.shiviraj.iot.authService.controller.view.ValidateTokenResponse
+import com.shiviraj.iot.authService.controller.view.*
 import com.shiviraj.iot.authService.model.Token
 import com.shiviraj.iot.authService.service.AuthService
 import com.shiviraj.iot.authService.service.TokenService
@@ -36,17 +33,22 @@ class AuthControllerTest {
 
     @Test
     fun `should sign up with user details`() {
-        val userDetails = UserDetailsBuilder().build()
+        val userDetails = UserDetailsBuilder(
+            userId = "userId",
+            name = "username",
+            email = "email",
+            password = "password"
+        ).build()
         every { authService.register(any()) } returns Mono.just(userDetails)
 
-        val userSignUpDetails = UserSignUpDetails(name = "name", email = "email", password = "password")
-        val response = authController.signUp(userSignUpDetails)
+        val userSignUpRequest = UserSignUpRequest(name = "name", email = "email", password = "password")
+        val response = authController.signUp(userSignUpRequest)
 
 
         assertNextWith(response) {
-            it shouldBe userDetails
+            it shouldBe UserSignUpResponse(email = "email", userId = "userId", name = "username")
             verify(exactly = 1) {
-                authService.register(userSignUpDetails)
+                authService.register(userSignUpRequest)
             }
         }
     }
@@ -56,13 +58,13 @@ class AuthControllerTest {
         val token = Token(tokenId = "tokenId", value = "value")
         every { tokenService.login(any()) } returns Mono.just(token)
 
-        val userLoginDetails = UserLoginDetails(email = "email", password = "password")
-        val response = authController.login(userLoginDetails)
+        val userLoginRequest = UserLoginRequest(email = "email", password = "password")
+        val response = authController.login(userLoginRequest)
 
         assertNextWith(response) {
             it shouldBe TokenResponse(token = "value")
             verify(exactly = 1) {
-                tokenService.login(userLoginDetails)
+                tokenService.login(userLoginRequest)
             }
         }
     }
