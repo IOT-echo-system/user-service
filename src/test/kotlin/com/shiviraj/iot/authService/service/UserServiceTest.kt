@@ -5,10 +5,11 @@ import com.shiviraj.iot.authService.controller.view.UserLoginRequest
 import com.shiviraj.iot.authService.controller.view.UserSignUpRequest
 import com.shiviraj.iot.authService.exception.IOTError
 import com.shiviraj.iot.authService.model.IdType
-import com.shiviraj.iot.authService.repository.AuthRepository
+import com.shiviraj.iot.authService.repository.UserRepository
 import com.shiviraj.iot.authService.testUtils.assertErrorWith
 import com.shiviraj.iot.authService.testUtils.assertNextWith
 import com.shiviraj.iot.userService.exceptions.BadDataException
+import com.shiviraj.iot.userService.exceptions.DataNotFoundException
 import com.shiviraj.iot.utils.service.IdGeneratorService
 import io.kotest.matchers.shouldBe
 import io.mockk.clearAllMocks
@@ -21,12 +22,12 @@ import org.junit.jupiter.api.Test
 import org.springframework.security.crypto.password.PasswordEncoder
 import reactor.core.publisher.Mono
 
-class AuthServiceTest {
-    private val authRepository = mockk<AuthRepository>()
+class UserServiceTest {
+    private val userRepository = mockk<UserRepository>()
     private val idGeneratorService = mockk<IdGeneratorService>()
     private val passwordEncoder = mockk<PasswordEncoder>()
-    private val authService = AuthService(
-        authRepository = authRepository,
+    private val userService = UserService(
+        userRepository = userRepository,
         idGeneratorService = idGeneratorService,
         passwordEncoder = passwordEncoder
     )
@@ -45,17 +46,17 @@ class AuthServiceTest {
     fun `should not register a new user`() {
         val userDetails = UserSignUpRequest(name = "name", email = "email", password = "password")
 
-        every { authRepository.existsByEmail(any()) } returns Mono.just(true)
+        every { userRepository.existsByEmail(any()) } returns Mono.just(true)
 
-        val response = authService.register(userDetails)
+        val response = userService.register(userDetails)
 
         assertErrorWith(response) {
             it shouldBe BadDataException(IOTError.IOT0101)
             verify(exactly = 1) {
-                authRepository.existsByEmail("email")
+                userRepository.existsByEmail("email")
             }
             verify(exactly = 0) {
-                authRepository.save(any())
+                userRepository.save(any())
             }
         }
     }
@@ -65,20 +66,20 @@ class AuthServiceTest {
         val userDetails = UserSignUpRequest(name = "name", email = "email", password = "password")
         val user = UserDetailsBuilder().build()
 
-        every { authRepository.existsByEmail(any()) } returns Mono.just(false)
-        every { authRepository.save(any()) } returns Mono.just(user)
+        every { userRepository.existsByEmail(any()) } returns Mono.just(false)
+        every { userRepository.save(any()) } returns Mono.just(user)
         every { passwordEncoder.encode(any()) } returns "encodedPassword"
         every { idGeneratorService.generateId(any()) } returns Mono.just("001")
 
-        val response = authService.register(userDetails)
+        val response = userService.register(userDetails)
 
         assertNextWith(response) {
             it shouldBe user
             verify(exactly = 1) {
                 passwordEncoder.encode("password")
                 idGeneratorService.generateId(IdType.USER_ID)
-                authRepository.existsByEmail("email")
-                authRepository.save(
+                userRepository.existsByEmail("email")
+                userRepository.save(
                     UserDetailsBuilder(
                         userId = "001",
                         password = "encodedPassword",
@@ -95,16 +96,16 @@ class AuthServiceTest {
         val userDetails = UserLoginRequest(email = "email", password = "password")
         val user = UserDetailsBuilder(email = "email", password = "encodedPassword").build()
 
-        every { authRepository.findByEmail(any()) } returns Mono.just(user)
+        every { userRepository.findByEmail(any()) } returns Mono.just(user)
         every { passwordEncoder.matches(any(), any()) } returns true
 
-        val response = authService.verifyCredentials(userDetails)
+        val response = userService.verifyCredentials(userDetails)
 
         assertNextWith(response) {
             it shouldBe user
             verify(exactly = 1) {
                 passwordEncoder.matches("password", "encodedPassword")
-                authRepository.findByEmail("email")
+                userRepository.findByEmail("email")
             }
         }
     }
@@ -113,14 +114,14 @@ class AuthServiceTest {
     fun `should give mono error if invalid email while verifying credentials`() {
         val userDetails = UserLoginRequest(email = "email", password = "password")
 
-        every { authRepository.findByEmail(any()) } returns Mono.empty()
+        every { userRepository.findByEmail(any()) } returns Mono.empty()
 
-        val response = authService.verifyCredentials(userDetails)
+        val response = userService.verifyCredentials(userDetails)
 
         assertErrorWith(response) {
             it shouldBe BadDataException(IOTError.IOT0102)
             verify(exactly = 1) {
-                authRepository.findByEmail("email")
+                userRepository.findByEmail("email")
             }
         }
     }
@@ -130,16 +131,47 @@ class AuthServiceTest {
         val userDetails = UserLoginRequest(email = "email", password = "password")
         val user = UserDetailsBuilder(email = "email", password = "encodedPassword").build()
 
-        every { authRepository.findByEmail(any()) } returns Mono.just(user)
+        every { userRepository.findByEmail(any()) } returns Mono.just(user)
         every { passwordEncoder.matches(any(), any()) } returns false
 
-        val response = authService.verifyCredentials(userDetails)
+        val response = userService.verifyCredentials(userDetails)
 
         assertErrorWith(response) {
             it shouldBe BadDataException(IOTError.IOT0102)
             verify(exactly = 1) {
-                authRepository.findByEmail("email")
+                userRepository.findByEmail("email")
                 passwordEncoder.matches("password", "encodedPassword")
+            }
+        }
+    }
+
+    @Test
+    fun `should get user by email`() {
+        val user = UserDetailsBuilder().build()
+        every { userRepository.findByEmail(any()) } returns Mono.just(user)
+
+        val response = userService.getUserByEmail("example@email.com")
+
+        assertNextWith(response){
+            it shouldBe user
+
+            verify(exactly = 1) {
+                userRepository.findByEmail("example@email.com")
+            }
+        }
+    }
+
+    @Test
+    fun `should give error if user not exist by email`() {
+        every { userRepository.findByEmail(any()) } returns Mono.empty()
+
+        val response = userService.getUserByEmail("example@email.com")
+
+        assertErrorWith(response){
+            it shouldBe DataNotFoundException(IOTError.IOT0106)
+
+            verify(exactly = 1) {
+                userRepository.findByEmail("example@email.com")
             }
         }
     }

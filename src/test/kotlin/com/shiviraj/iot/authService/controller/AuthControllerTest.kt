@@ -2,9 +2,11 @@ package com.shiviraj.iot.authService.controller
 
 import com.shiviraj.iot.authService.builder.UserDetailsBuilder
 import com.shiviraj.iot.authService.controller.view.*
+import com.shiviraj.iot.authService.model.Otp
 import com.shiviraj.iot.authService.model.Token
-import com.shiviraj.iot.authService.service.AuthService
+import com.shiviraj.iot.authService.service.OtpService
 import com.shiviraj.iot.authService.service.TokenService
+import com.shiviraj.iot.authService.service.UserService
 import com.shiviraj.iot.authService.testUtils.assertNextWith
 import io.kotest.matchers.shouldBe
 import io.mockk.clearAllMocks
@@ -17,9 +19,11 @@ import org.junit.jupiter.api.Test
 import reactor.core.publisher.Mono
 
 class AuthControllerTest {
-    private val authService = mockk<AuthService>()
+    private val userService = mockk<UserService>()
     private val tokenService = mockk<TokenService>()
-    private val authController = AuthController(authService = authService, tokenService = tokenService)
+    private val otpService = mockk<OtpService>()
+    private val authController =
+        AuthController(userService = userService, tokenService = tokenService, otpService = otpService)
 
     @BeforeEach
     fun setUp() {
@@ -39,7 +43,7 @@ class AuthControllerTest {
             email = "email",
             password = "password"
         ).build()
-        every { authService.register(any()) } returns Mono.just(userDetails)
+        every { userService.register(any()) } returns Mono.just(userDetails)
 
         val userSignUpRequest = UserSignUpRequest(name = "name", email = "email", password = "password")
         val response = authController.signUp(userSignUpRequest)
@@ -48,7 +52,7 @@ class AuthControllerTest {
         assertNextWith(response) {
             it shouldBe UserSignUpResponse(email = "email", userId = "userId", name = "username")
             verify(exactly = 1) {
-                authService.register(userSignUpRequest)
+                userService.register(userSignUpRequest)
             }
         }
     }
@@ -62,7 +66,7 @@ class AuthControllerTest {
         val response = authController.login(userLoginRequest)
 
         assertNextWith(response) {
-            it shouldBe TokenResponse(token = "value")
+            it shouldBe TokenResponse(token = "value", success = true)
             verify(exactly = 1) {
                 tokenService.login(userLoginRequest)
             }
@@ -80,6 +84,43 @@ class AuthControllerTest {
             verify(exactly = 1) {
                 tokenService.validate("token")
             }
+        }
+    }
+
+    @Test
+    fun `should generate otp`() {
+        val otp = Otp(otpId = "otpID", value = "otp", email = "example@email.com")
+        every { otpService.generateOtp(any()) } returns Mono.just(otp)
+
+        val generateOtpRequest = GenerateOtpRequest(email = "example@email.com")
+        val res = authController.generateOtp(generateOtpRequest)
+
+        assertNextWith(res) {
+            it shouldBe OtpResponse(otpId = "otpID", success = true, generateAt = otp.createdAt)
+
+            verify(exactly = 1) {
+                otpService.generateOtp(generateOtpRequest)
+            }
+
+        }
+    }
+
+    @Test
+    fun `should verify otp`() {
+        val token = Token(tokenId = "tokenId", value = "value")
+        every { otpService.verifyOtp(any()) } returns Mono.just(token)
+
+
+        val verifyOtpRequest = VerifyOtpRequest(otpId = "otpId", otp = "otp")
+        val res = authController.verifyOtp(verifyOtpRequest)
+
+        assertNextWith(res) {
+            it shouldBe TokenResponse(token = "value", success = true)
+
+            verify(exactly = 1) {
+                otpService.verifyOtp(verifyOtpRequest)
+            }
+
         }
     }
 }

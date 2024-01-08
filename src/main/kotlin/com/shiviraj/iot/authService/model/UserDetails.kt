@@ -19,8 +19,13 @@ data class UserDetails(
     val name: String,
     @Indexed(unique = true)
     val email: String,
-    val password: String,
+    var password: String,
 ) {
+    fun updatePassword(encodedPassword: String): UserDetails {
+        this.password = encodedPassword
+        return this
+    }
+
     companion object {
         fun from(userId: String, userDetails: UserSignUpRequest, password: String): UserDetails {
             return UserDetails(

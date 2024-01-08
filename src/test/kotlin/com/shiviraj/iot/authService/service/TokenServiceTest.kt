@@ -5,6 +5,7 @@ import com.shiviraj.iot.authService.config.AppConfig
 import com.shiviraj.iot.authService.controller.view.UserLoginRequest
 import com.shiviraj.iot.authService.exception.IOTError
 import com.shiviraj.iot.authService.model.IdType
+import com.shiviraj.iot.authService.model.Otp
 import com.shiviraj.iot.authService.model.Token
 import com.shiviraj.iot.authService.repository.TokenRepository
 import com.shiviraj.iot.authService.testUtils.assertErrorWith
@@ -25,13 +26,13 @@ class TokenServiceTest {
 
     private val tokenRepository = mockk<TokenRepository>()
     private val idGeneratorService = mockk<IdGeneratorService>()
-    private val authService = mockk<AuthService>()
+    private val userService = mockk<UserService>()
     private val appConfig = AppConfig(secretKey = "secretkeysecretkeysecretkeysecretkeysecretkeysecretkeysecretkey")
 
     private val tokenService = TokenService(
         tokenRepository = tokenRepository,
         idGeneratorService = idGeneratorService,
-        authService = authService,
+        userService = userService,
         appConfig = appConfig
     )
 
@@ -51,7 +52,7 @@ class TokenServiceTest {
         val user = UserDetailsBuilder(userId = "userId", email = "email", password = "encodedPassword").build()
         val token = Token(tokenId = "001", value = "token value")
 
-        every { authService.verifyCredentials(any()) } returns Mono.just(user)
+        every { userService.verifyCredentials(any()) } returns Mono.just(user)
         every { idGeneratorService.generateId(any()) } returns Mono.just("001")
         every { tokenRepository.save(any()) } returns Mono.just(token)
 
@@ -61,7 +62,7 @@ class TokenServiceTest {
         assertNextWith(response) {
             it shouldBe token
             verify {
-                authService.verifyCredentials(credentials)
+                userService.verifyCredentials(credentials)
                 idGeneratorService.generateId(IdType.TOKEN_ID)
                 tokenRepository.save(any())
             }
@@ -97,6 +98,24 @@ class TokenServiceTest {
             it shouldBe UnAuthorizedException(IOTError.IOT0103)
             verify {
                 tokenRepository.findByValue(tokenValue)
+            }
+        }
+    }
+
+    @Test
+    fun `should generate temp token with otp`() {
+        every { idGeneratorService.generateId(any()) } returns Mono.just("tokenId")
+        val token = Token(tokenId = "adversarium", value = "cetero")
+        every { tokenRepository.save(any()) } returns Mono.just(token)
+
+        val otp = Otp(otpId = "otpId", value = "value", email = "example@email.com")
+        val response = tokenService.generateTokenWithOtp(otp)
+
+        assertNextWith(response) {
+            it shouldBe token
+            verify {
+                idGeneratorService.generateId(IdType.TOKEN_ID)
+                tokenRepository.save(any())
             }
         }
     }

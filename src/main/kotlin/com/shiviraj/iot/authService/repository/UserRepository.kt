@@ -7,7 +7,8 @@ import org.springframework.stereotype.Repository
 import reactor.core.publisher.Mono
 
 @Repository
-interface AuthRepository : ReactiveCrudRepository<UserDetails, UserId> {
+interface UserRepository : ReactiveCrudRepository<UserDetails, UserId> {
     fun findByEmail(email: String): Mono<UserDetails>
     fun existsByEmail(email: String): Mono<Boolean>
+    fun findByUserId(userId:UserId): Mono<UserDetails>
 }
