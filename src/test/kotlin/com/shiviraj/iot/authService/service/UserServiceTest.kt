@@ -1,6 +1,7 @@
 package com.shiviraj.iot.authService.service
 
 import com.shiviraj.iot.authService.builder.UserDetailsBuilder
+import com.shiviraj.iot.authService.controller.view.ResetPasswordRequest
 import com.shiviraj.iot.authService.controller.view.UserLoginRequest
 import com.shiviraj.iot.authService.controller.view.UserSignUpRequest
 import com.shiviraj.iot.authService.exception.IOTError
@@ -152,7 +153,7 @@ class UserServiceTest {
 
         val response = userService.getUserByEmail("example@email.com")
 
-        assertNextWith(response){
+        assertNextWith(response) {
             it shouldBe user
 
             verify(exactly = 1) {
@@ -167,11 +168,77 @@ class UserServiceTest {
 
         val response = userService.getUserByEmail("example@email.com")
 
-        assertErrorWith(response){
+        assertErrorWith(response) {
             it shouldBe DataNotFoundException(IOTError.IOT0106)
 
             verify(exactly = 1) {
                 userRepository.findByEmail("example@email.com")
+            }
+        }
+    }
+
+    @Test
+    fun `should reset user password`() {
+        val userDetails = UserDetailsBuilder(userId = "userId", email = "example@email.com", password = "encodedPassword").build()
+        every { userRepository.findByUserId(any()) } returns Mono.just(userDetails)
+        every { userRepository.findByEmail(any()) } returns Mono.just(userDetails)
+        every { passwordEncoder.matches(any(), any()) } returns true
+        every { userRepository.save(any()) } returns Mono.just(userDetails)
+        every { passwordEncoder.encode(any()) } returns "newEncodedPassword"
+
+        val resetPasswordRequest = ResetPasswordRequest(password = "new password", currentPassword = "password")
+        val response = userService.resetPassword("userId", resetPasswordRequest = resetPasswordRequest)
+
+        assertNextWith(response) {
+            it shouldBe userDetails
+
+            verify(exactly = 1) {
+                userRepository.findByUserId("userId")
+                userRepository.findByEmail("example@email.com")
+                passwordEncoder.matches( "password","encodedPassword")
+                passwordEncoder.encode("new password")
+                userRepository.save(userDetails.copy(password = "newEncodedPassword"))
+            }
+        }
+    }
+
+    @Test
+    fun `should not reset user password if current password is not valid`() {
+        val userDetails = UserDetailsBuilder(userId = "userId", email = "example@email.com", password = "encodedPassword").build()
+        every { userRepository.findByUserId(any()) } returns Mono.just(userDetails)
+        every { userRepository.findByEmail(any()) } returns Mono.just(userDetails)
+        every { passwordEncoder.matches(any(), any()) } returns false
+
+        val resetPasswordRequest = ResetPasswordRequest(password = "new password")
+        val response = userService.resetPassword("userId", resetPasswordRequest = resetPasswordRequest)
+
+        assertErrorWith(response) {
+            it shouldBe BadDataException(IOTError.IOT0102)
+
+            verify(exactly = 1) {
+                userRepository.findByUserId("userId")
+                userRepository.findByEmail("example@email.com")
+                passwordEncoder.matches( "","encodedPassword")
+            }
+        }
+    }
+
+    @Test
+    fun `should reset user password by email`() {
+        val userDetails = UserDetailsBuilder(userId = "userId", email = "example@email.com", password = "encodedPassword").build()
+        every { userRepository.findByEmail(any()) } returns Mono.just(userDetails)
+        every { userRepository.save(any()) } returns Mono.just(userDetails)
+        every { passwordEncoder.encode(any()) } returns "encodedPassword"
+
+        val response = userService.resetPasswordByEmail("example@email.com", password = "password")
+
+        assertNextWith(response) {
+            it shouldBe userDetails
+
+            verify(exactly = 1) {
+                userRepository.findByEmail("example@email.com")
+                passwordEncoder.encode("password")
+                userRepository.save(userDetails.copy(password = "encodedPassword"))
             }
         }
     }

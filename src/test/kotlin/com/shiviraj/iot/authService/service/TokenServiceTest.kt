@@ -119,4 +119,37 @@ class TokenServiceTest {
             }
         }
     }
+
+    @Test
+    fun `should not validate token for otp`() {
+        val token = Token(tokenId = "001", value = "token value")
+        val tokenValue = "token"
+
+        every { tokenRepository.findByValue(any()) } returns Mono.just(token)
+
+        val response = tokenService.validateTokenForOtp(tokenValue)
+
+        assertErrorWith(response) {
+            it shouldBe UnAuthorizedException(IOTError.IOT0103)
+            verify {
+                tokenRepository.findByValue(tokenValue)
+            }
+        }
+    }
+
+    @Test
+    fun `should not validate token for otp if not exists in DB`() {
+        val tokenValue = "token"
+
+        every { tokenRepository.findByValue(any()) } returns Mono.empty()
+
+        val response = tokenService.validateTokenForOtp(tokenValue)
+
+        assertErrorWith(response) {
+            it shouldBe UnAuthorizedException(IOTError.IOT0103)
+            verify {
+                tokenRepository.findByValue(tokenValue)
+            }
+        }
+    }
 }

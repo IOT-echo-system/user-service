@@ -88,6 +88,20 @@ class AuthControllerTest {
     }
 
     @Test
+    fun `should validate token with default`() {
+        every { tokenService.validate(any()) } returns Mono.just(ValidateTokenResponse(userId = "userId"))
+
+        val response = authController.validateToken()
+
+        assertNextWith(response) {
+            it shouldBe ValidateTokenResponse(userId = "userId")
+            verify(exactly = 1) {
+                tokenService.validate("")
+            }
+        }
+    }
+
+    @Test
     fun `should generate otp`() {
         val otp = Otp(otpId = "otpID", value = "otp", email = "example@email.com")
         every { otpService.generateOtp(any()) } returns Mono.just(otp)

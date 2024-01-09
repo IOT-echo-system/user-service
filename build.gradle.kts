@@ -85,23 +85,23 @@ tasks.jacocoTestCoverageVerification {
         rule {
             limit {
                 counter = "INSTRUCTION"
-                minimum = BigDecimal(0.86)
+                minimum = BigDecimal(0.93)
             }
             limit {
                 counter = "BRANCH"
-                minimum = BigDecimal(0.8)
+                minimum = BigDecimal(1)
             }
             limit {
                 counter = "LINE"
-                minimum = BigDecimal(0.89)
+                minimum = BigDecimal(0.95)
             }
             limit {
                 counter = "METHOD"
-                minimum = BigDecimal(0.75)
+                minimum = BigDecimal(0.84)
             }
             limit {
                 counter = "CLASS"
-                minimum = BigDecimal(0.85)
+                minimum = BigDecimal(0.95)
             }
         }
     }

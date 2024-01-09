@@ -13,6 +13,7 @@ import com.shiviraj.iot.loggingstarter.logOnSuccess
 import com.shiviraj.iot.userService.exceptions.BadDataException
 import com.shiviraj.iot.userService.exceptions.DataNotFoundException
 import com.shiviraj.iot.utils.service.IdGeneratorService
+import com.shiviraj.iot.utils.utils.createMono
 import com.shiviraj.iot.utils.utils.createMonoError
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
@@ -54,16 +55,14 @@ class UserService(
         return userRepository.findByEmail(userDetails.email)
             .flatMap { details ->
                 val matches = passwordEncoder.matches(userDetails.password, details.password)
-                Mono.deferContextual {
-                    if (matches) {
-                        Mono.just(details)
-                    } else {
-                        Mono.error(BadDataException(IOTError.IOT0102))
-                    }
+                if (matches) {
+                    createMono(details)
+                } else {
+                    createMonoError(BadDataException(IOTError.IOT0102))
                 }
             }
             .switchIfEmpty {
-                Mono.error(BadDataException(IOTError.IOT0102))
+                createMonoError(BadDataException(IOTError.IOT0102))
             }
     }
 
