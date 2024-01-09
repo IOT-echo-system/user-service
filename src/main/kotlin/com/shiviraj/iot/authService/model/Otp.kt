@@ -28,6 +28,10 @@ data class Otp(
     }
 
     fun isValidOtp(otp: String): Boolean = this.value == otp
+    fun setVerified(): Otp {
+        this.state = OtpState.VERIFIED
+        return this
+    }
 
     companion object {
         fun create(otpId: String, email: String): Otp {

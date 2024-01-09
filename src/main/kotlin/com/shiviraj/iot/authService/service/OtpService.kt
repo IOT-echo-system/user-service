@@ -61,7 +61,7 @@ class OtpService(
         return otpRepository.findByOtpIdAndState(verifyOtpRequest.otpId, OtpState.GENERATED)
             .flatMap {
                 if (it.isValidOtp(verifyOtpRequest.otp)) {
-                    otpRepository.save(it.setExpired())
+                    otpRepository.save(it.setVerified())
                 } else {
                     createMonoError(BadDataException(IOTError.IOT0105))
                 }

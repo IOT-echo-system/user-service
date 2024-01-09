@@ -142,7 +142,7 @@ class OtpServiceTest {
             it shouldBe token
             verify(exactly = 1) {
                 otpRepository.findByOtpIdAndState("otpId", OtpState.GENERATED)
-                otpRepository.save(otp.copy(state = OtpState.EXPIRED))
+                otpRepository.save(otp.copy(state = OtpState.VERIFIED))
             }
         }
     }
