@@ -41,11 +41,11 @@ class AuthController(
         return otpService.verifyOtp(verifyOtpRequest).map { TokenResponse(it.value, true) }
     }
 
-//    @PostMapping("/reset-password")
-//    fun resetPassword(
-//        @RequestBody @Validated resetPasswordRequest: ResetPasswordRequest,
-//        @RequestHeader("Authorization") token: String = ""
-//    ): Mono<ResetPasswordResponse> {
-//        return otpService.resetPassword(resetPasswordRequest, token).map { ResetPasswordResponse(true) }
-//    }
+    @PostMapping("/reset-password")
+    fun resetPassword(
+        @RequestBody @Validated resetPasswordRequest: ResetPasswordRequest,
+        @RequestHeader("Authorization") token: String = ""
+    ): Mono<ResetPasswordResponse> {
+        return otpService.resetPassword(resetPasswordRequest, token).map { ResetPasswordResponse(true) }
+    }
 }

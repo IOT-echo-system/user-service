@@ -1,5 +1,6 @@
 package com.shiviraj.iot.authService.controller.view
 
+import com.shiviraj.iot.authService.model.OtpId
 import com.shiviraj.iot.authService.model.UserDetails
 import com.shiviraj.iot.authService.model.UserId
 import jakarta.validation.constraints.Email
@@ -50,4 +51,5 @@ data class TokenResponse(val token: String, val success: Boolean)
 data class ResetPasswordResponse(val success: Boolean)
 
 data class ValidateTokenResponse(val userId: UserId)
+data class ValidateTokenResponseForOtp(val otpId: OtpId)
 

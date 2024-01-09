@@ -4,10 +4,7 @@ import com.shiviraj.iot.authService.config.AppConfig
 import com.shiviraj.iot.authService.controller.view.UserLoginRequest
 import com.shiviraj.iot.authService.controller.view.ValidateTokenResponse
 import com.shiviraj.iot.authService.exception.IOTError
-import com.shiviraj.iot.authService.model.IdType
-import com.shiviraj.iot.authService.model.Otp
-import com.shiviraj.iot.authService.model.Token
-import com.shiviraj.iot.authService.model.UserDetails
+import com.shiviraj.iot.authService.model.*
 import com.shiviraj.iot.authService.repository.TokenRepository
 import com.shiviraj.iot.loggingstarter.logOnError
 import com.shiviraj.iot.loggingstarter.logOnSuccess
@@ -84,27 +81,27 @@ class TokenService(
 
     }
 
-//    fun validateTokenForOtp(token: String): Mono<String> {
-//        return tokenRepository.findByValue(token)
-//            .flatMap {
-//                try {
-//                    val parseClaimsJws = Jwts.parserBuilder()
-//                        .setSigningKey(getSignKey())
-//                        .build()
-//                        .parseClaimsJws(it.value)
-//
-//                    createMono(parseClaimsJws.body.get("otpId", String::class.java))
-//                } catch (e: Exception) {
-//                    createMonoError(UnAuthorizedException(IOTError.IOT0103))
-//                }
-//            }
-//            .switchIfEmpty {
-//                Mono.error(UnAuthorizedException(IOTError.IOT0103))
-//            }
-//            .logOnSuccess(message = "Successfully validated authorization")
-//            .logOnError(errorCode = IOTError.IOT0103.errorCode, errorMessage = "Failed to validate authorization")
-//    }
-//
+    fun validateTokenForOtp(token: String): Mono<OtpId> {
+        return tokenRepository.findByValue(token)
+            .flatMap {
+                try {
+                    val parseClaimsJws = Jwts.parserBuilder()
+                        .setSigningKey(getSignKey())
+                        .build()
+                        .parseClaimsJws(it.value)
+
+                    createMono(parseClaimsJws.body.get("otpId", String::class.java))
+                } catch (e: Exception) {
+                    createMonoError(UnAuthorizedException(IOTError.IOT0103))
+                }
+            }
+            .switchIfEmpty {
+                Mono.error(UnAuthorizedException(IOTError.IOT0103))
+            }
+            .logOnSuccess(message = "Successfully validated authorization for otp token")
+            .logOnError(errorCode = IOTError.IOT0103.errorCode, errorMessage = "Failed to validate authorization for otp token")
+    }
+
 
     private fun generateTempToken(otp: Otp): String {
         return Jwts.builder()

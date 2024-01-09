@@ -19,7 +19,7 @@ data class Token(
     val tokenId: TokenId,
     val value: String,
     @Indexed(name = "sessionExpiryIndex", expireAfterSeconds = 604800)
-    val createdAt: LocalDateTime = LocalDateTime.now(),
+    val createdAt: LocalDateTime = LocalDateTime.now()
 ) {
     companion object {
         fun from(tokenId: String, value: String): Token {

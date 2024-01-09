@@ -120,7 +120,22 @@ class AuthControllerTest {
             verify(exactly = 1) {
                 otpService.verifyOtp(verifyOtpRequest)
             }
+        }
+    }
 
+    @Test
+    fun `should reset password`() {
+        every { otpService.resetPassword(any(), any()) } returns Mono.just(UserDetailsBuilder().build())
+
+        val resetPasswordRequest = ResetPasswordRequest(currentPassword = null, password = "Password")
+        val res = authController.resetPassword(resetPasswordRequest = resetPasswordRequest)
+
+        assertNextWith(res) {
+            it shouldBe ResetPasswordResponse(success = true)
+
+            verify(exactly = 1) {
+                otpService.resetPassword(resetPasswordRequest = resetPasswordRequest, token = "")
+            }
         }
     }
 }
