@@ -7,7 +7,6 @@ import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.LocalDateTime
 
-
 const val TOKEN_COLLECTION = "tokens"
 
 @TypeAlias("Token")
@@ -19,13 +18,33 @@ data class Token(
     val tokenId: TokenId,
     val value: String,
     @Indexed(name = "sessionExpiryIndex", expireAfterSeconds = 604800)
-    val createdAt: LocalDateTime = LocalDateTime.now()
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+    var expiredAt: LocalDateTime,
+    val userId: UserId,
+    val otpId: OtpId?
 ) {
+    fun setExpired(): Token {
+        this.expiredAt = LocalDateTime.now().minusDays(1)
+        return this
+    }
+
     companion object {
-        fun from(tokenId: String, value: String): Token {
-            return Token(tokenId = tokenId, value = value)
+        fun generate(tokenId: String, userId: UserId, expiredAt: LocalDateTime, otpId: OtpId?): Token {
+            return Token(
+                tokenId = tokenId,
+                userId = userId,
+                value = generateTokenValue(),
+                expiredAt = expiredAt,
+                otpId = otpId
+            )
+        }
+
+        private fun generateTokenValue(length: Int = 120): String {
+            val chars = ('a'..'z') + ('A'..'Z') + ('0'..'9') + "`~!@#$%^&*()_+=-".split("")
+            return List(length) { chars.random() }.joinToString("")
         }
     }
 }
+
 
 typealias TokenId = String

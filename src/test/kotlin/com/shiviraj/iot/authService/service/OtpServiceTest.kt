@@ -1,18 +1,18 @@
 package com.shiviraj.iot.authService.service
 
-import com.shiviraj.iot.authService.builder.UserDetailsBuilder
+import com.shiviraj.iot.authService.builder.OtpBuilder
+import com.shiviraj.iot.authService.builder.TokenBuilder
 import com.shiviraj.iot.authService.controller.view.GenerateOtpRequest
-import com.shiviraj.iot.authService.controller.view.ResetPasswordRequest
-import com.shiviraj.iot.authService.controller.view.ValidateTokenResponse
 import com.shiviraj.iot.authService.controller.view.VerifyOtpRequest
 import com.shiviraj.iot.authService.exception.IOTError
-import com.shiviraj.iot.authService.model.*
+import com.shiviraj.iot.authService.model.IdType
+import com.shiviraj.iot.authService.model.OtpState
+import com.shiviraj.iot.authService.model.UserDetails
 import com.shiviraj.iot.authService.repository.OtpRepository
 import com.shiviraj.iot.authService.testUtils.assertErrorWith
 import com.shiviraj.iot.authService.testUtils.assertNextWith
 import com.shiviraj.iot.userService.exceptions.BadDataException
 import com.shiviraj.iot.userService.exceptions.TooManyRequestsException
-import com.shiviraj.iot.userService.exceptions.UnAuthorizedException
 import com.shiviraj.iot.utils.service.IdGeneratorService
 import io.kotest.matchers.shouldBe
 import io.mockk.*
@@ -52,7 +52,7 @@ class OtpServiceTest {
         every { LocalDateTime.now() } returns now
 
         every { otpRepository.countByEmailAndCreatedAtAfter(any(), any()) } returns Mono.just(0)
-        val otp = Otp(otpId = "otpId", value = "value", email = "example@email.com", createdAt = now)
+        val otp = OtpBuilder(otpId = "otpId", value = "value", email = "example@email.com", createdAt = now).build()
         every { otpRepository.findByEmailAndState(any(), any()) } returns Mono.empty()
         every { userService.getUserByEmail(any()) } returns Mono.just(
             UserDetails(
@@ -85,7 +85,7 @@ class OtpServiceTest {
         every { LocalDateTime.now() } returns now
 
         every { otpRepository.countByEmailAndCreatedAtAfter(any(), any()) } returns Mono.just(1)
-        val otp = Otp(otpId = "otpId", value = "value", email = "example@email.com", createdAt = now)
+        val otp = OtpBuilder(otpId = "otpId", value = "value", email = "example@email.com", createdAt = now).build()
         every { otpRepository.findByEmailAndState(any(), any()) } returns Mono.just(otp)
         every { userService.getUserByEmail(any()) } returns Mono.just(
             UserDetails(
@@ -134,11 +134,11 @@ class OtpServiceTest {
 
     @Test
     fun `should verify otp`() {
-        val otp = Otp(otpId = "otpId", value = "otp", email = "example@email.com")
+        val otp = OtpBuilder(otpId = "otpId", value = "otp", email = "example@email.com").build()
         every { otpRepository.findByOtpIdAndState(any(), any()) } returns Mono.just(otp)
         every { otpRepository.save(any()) } returns Mono.just(otp)
-        val token = Token(tokenId = "tokenId", value = "token")
-        every { tokenService.generateTokenWithOtp(any()) } returns Mono.just(token)
+        val token = TokenBuilder(tokenId = "tokenId", value = "token").build()
+        every { tokenService.generateToken(any(), any(), any()) } returns Mono.just(token)
 
         val response = otpService.verifyOtp(VerifyOtpRequest(otpId = "otpId", otp = "otp"))
 
@@ -153,7 +153,7 @@ class OtpServiceTest {
 
     @Test
     fun `should return error for invalid otp`() {
-        val otp = Otp(otpId = "otpId", value = "otp", email = "example@email.com")
+        val otp = OtpBuilder(otpId = "otpId", value = "otp", email = "example@email.com").build()
         every { otpRepository.findByOtpIdAndState(any(), any()) } returns Mono.just(otp)
 
         val response = otpService.verifyOtp(VerifyOtpRequest(otpId = "otpId", otp = "invalidOtp"))
@@ -167,46 +167,5 @@ class OtpServiceTest {
     }
 
 
-    @Test
-    fun `should reset user password`() {
-        val userDetails = UserDetailsBuilder(userId = "userId").build()
-        val resetPasswordRequest = ResetPasswordRequest(currentPassword = "Password", password = "New password")
-
-        every { tokenService.validate(any()) } returns Mono.just(ValidateTokenResponse(userId = "userId"))
-        every { userService.resetPassword(any(), any()) } returns Mono.just(userDetails)
-
-        val response = otpService.resetPassword(resetPasswordRequest = resetPasswordRequest, token = "token")
-
-        assertNextWith(response) {
-            it shouldBe userDetails
-            verify(exactly = 1) {
-                tokenService.validate("token")
-                userService.resetPassword("userId", resetPasswordRequest)
-            }
-        }
-    }
-
-    @Test
-    fun `should reset user password with temp token`() {
-        val userDetails = UserDetailsBuilder(userId = "userId").build()
-        val otp = Otp(otpId = "otpId", value = "otp", email = "example@email.com", state = OtpState.VERIFIED)
-        val resetPasswordRequest = ResetPasswordRequest(currentPassword = "Password", password = "New password")
-
-        every { tokenService.validate(any()) } returns Mono.error(UnAuthorizedException(IOTError.IOT0103))
-        every { tokenService.validateTokenForOtp(any()) } returns Mono.just("otpId")
-        every { otpRepository.findByOtpIdAndState(any(), any()) } returns Mono.just(otp)
-        every { userService.resetPasswordByEmail(any(), any()) } returns Mono.just(userDetails)
-
-        val response = otpService.resetPassword(resetPasswordRequest = resetPasswordRequest, token = "token")
-
-        assertNextWith(response) {
-            it shouldBe userDetails
-            verify(exactly = 1) {
-                tokenService.validate("token")
-                tokenService.validateTokenForOtp("token")
-                otpRepository.findByOtpIdAndState("otpId", OtpState.VERIFIED)
-                userService.resetPasswordByEmail("example@email.com", resetPasswordRequest.password)
-            }
-        }
-    }
+    
 }

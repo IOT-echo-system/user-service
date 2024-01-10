@@ -18,6 +18,7 @@ data class Otp(
     val otpId: TokenId,
     val value: String,
     val email: String,
+    val userId: UserId,
     var state: OtpState = OtpState.GENERATED,
     @Indexed(name = "sessionExpiryIndex", expireAfterSeconds = 300)
     val createdAt: LocalDateTime = LocalDateTime.now(),
@@ -34,8 +35,14 @@ data class Otp(
     }
 
     companion object {
-        fun create(otpId: String, email: String): Otp {
-            return Otp(otpId = otpId, value = generateOTP(6), email = email, state = OtpState.GENERATED)
+        fun create(otpId: String, userDetails: UserDetails): Otp {
+            return Otp(
+                otpId = otpId,
+                value = generateOTP(6),
+                email = userDetails.email,
+                userId = userDetails.userId,
+                state = OtpState.GENERATED
+            )
         }
     }
 

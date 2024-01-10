@@ -1,6 +1,5 @@
 package com.shiviraj.iot.authService.service
 
-import com.shiviraj.iot.authService.controller.view.ResetPasswordRequest
 import com.shiviraj.iot.authService.controller.view.UserLoginRequest
 import com.shiviraj.iot.authService.controller.view.UserSignUpRequest
 import com.shiviraj.iot.authService.exception.IOTError
@@ -66,27 +65,25 @@ class UserService(
             }
     }
 
-    fun resetPassword(userId: UserId, resetPasswordRequest: ResetPasswordRequest): Mono<UserDetails> {
+    fun resetPassword(userId: UserId, password: String): Mono<UserDetails> {
         return userRepository.findByUserId(userId)
             .flatMap {
-                this.verifyCredentials(
-                    UserLoginRequest(email = it.email, password = resetPasswordRequest.currentPassword ?: "")
-                )
-            }
-            .flatMap {
-                userRepository.save(it.updatePassword(passwordEncoder.encode(resetPasswordRequest.password)))
+                userRepository.save(it.updatePassword(passwordEncoder.encode(password)))
             }
             .logOnSuccess(message = "Successfully updated password")
             .logOnError(errorMessage = "Failed to update password")
     }
 
-    fun resetPasswordByEmail(email: String, password: String): Mono<UserDetails> {
-        return userRepository.findByEmail(email)
+    fun resetPassword(userId: UserId, currentPassword: String, password: String): Mono<UserDetails> {
+        return userRepository.findByUserId(userId)
+            .flatMap {
+                this.verifyCredentials(UserLoginRequest(email = it.email, password = currentPassword))
+            }
             .flatMap {
                 userRepository.save(it.updatePassword(passwordEncoder.encode(password)))
             }
-            .logOnSuccess(message = "Successfully updated password using email")
-            .logOnError(errorMessage = "Failed to update password using email")
+            .logOnSuccess(message = "Successfully updated password")
+            .logOnError(errorMessage = "Failed to update password")
     }
 
     fun getUserByEmail(email: String): Mono<UserDetails> {

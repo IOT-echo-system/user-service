@@ -1,12 +1,11 @@
 package com.shiviraj.iot.authService.service
 
+import com.shiviraj.iot.authService.builder.TokenBuilder
 import com.shiviraj.iot.authService.builder.UserDetailsBuilder
-import com.shiviraj.iot.authService.config.AppConfig
+import com.shiviraj.iot.authService.controller.view.ResetPasswordRequest
 import com.shiviraj.iot.authService.controller.view.UserLoginRequest
 import com.shiviraj.iot.authService.exception.IOTError
 import com.shiviraj.iot.authService.model.IdType
-import com.shiviraj.iot.authService.model.Otp
-import com.shiviraj.iot.authService.model.Token
 import com.shiviraj.iot.authService.repository.TokenRepository
 import com.shiviraj.iot.authService.testUtils.assertErrorWith
 import com.shiviraj.iot.authService.testUtils.assertNextWith
@@ -27,13 +26,11 @@ class TokenServiceTest {
     private val tokenRepository = mockk<TokenRepository>()
     private val idGeneratorService = mockk<IdGeneratorService>()
     private val userService = mockk<UserService>()
-    private val appConfig = AppConfig(secretKey = "secretkeysecretkeysecretkeysecretkeysecretkeysecretkeysecretkey")
 
     private val tokenService = TokenService(
         tokenRepository = tokenRepository,
         idGeneratorService = idGeneratorService,
         userService = userService,
-        appConfig = appConfig
     )
 
     @BeforeEach
@@ -50,7 +47,7 @@ class TokenServiceTest {
     fun `should create token if login credentials are correct`() {
         val credentials = UserLoginRequest(email = "email", password = "password")
         val user = UserDetailsBuilder(userId = "userId", email = "email", password = "encodedPassword").build()
-        val token = Token(tokenId = "001", value = "token value")
+        val token = TokenBuilder(tokenId = "001", value = "token value").build()
 
         every { userService.verifyCredentials(any()) } returns Mono.just(user)
         every { idGeneratorService.generateId(any()) } returns Mono.just("001")
@@ -71,17 +68,16 @@ class TokenServiceTest {
 
     @Test
     fun `should not validate token`() {
-        val token = Token(tokenId = "001", value = "token value")
         val tokenValue = "token"
 
-        every { tokenRepository.findByValue(any()) } returns Mono.just(token)
+        every { tokenRepository.findByValueAndExpiredAtAfter(any(), any()) } returns Mono.empty()
 
         val response = tokenService.validate(tokenValue)
 
         assertErrorWith(response) {
             it shouldBe UnAuthorizedException(IOTError.IOT0103)
             verify {
-                tokenRepository.findByValue(tokenValue)
+                tokenRepository.findByValueAndExpiredAtAfter(tokenValue, any())
             }
         }
     }
@@ -90,65 +86,81 @@ class TokenServiceTest {
     fun `should not validate token if not exists in db`() {
         val tokenValue = "token"
 
-        every { tokenRepository.findByValue(any()) } returns Mono.empty()
+        every { tokenRepository.findByValueAndExpiredAtAfter(any(), any()) } returns Mono.empty()
 
         val response = tokenService.validate(tokenValue)
 
         assertErrorWith(response) {
             it shouldBe UnAuthorizedException(IOTError.IOT0103)
             verify {
-                tokenRepository.findByValue(tokenValue)
+                tokenRepository.findByValueAndExpiredAtAfter(tokenValue, any())
             }
         }
     }
 
     @Test
-    fun `should generate temp token with otp`() {
-        every { idGeneratorService.generateId(any()) } returns Mono.just("tokenId")
-        val token = Token(tokenId = "adversarium", value = "cetero")
+    fun `should reset user password`() {
+        val userDetails = UserDetailsBuilder(userId = "userId").build()
+        val token = TokenBuilder(userId = "userId", otpId = null).build()
+
+        every { tokenRepository.findByValueAndExpiredAtAfter(any(), any()) } returns Mono.just(token)
+        every { userService.resetPassword(any(), any(), any()) } returns Mono.just(userDetails)
         every { tokenRepository.save(any()) } returns Mono.just(token)
 
-        val otp = Otp(otpId = "otpId", value = "value", email = "example@email.com")
-        val response = tokenService.generateTokenWithOtp(otp)
+        val response = tokenService.resetPassword(ResetPasswordRequest("password", "new password"), "tokenValue")
 
         assertNextWith(response) {
-            it shouldBe token
-            verify {
-                idGeneratorService.generateId(IdType.TOKEN_ID)
-                tokenRepository.save(any())
+            it shouldBe userDetails
+            verify(exactly = 1) {
+                tokenRepository.findByValueAndExpiredAtAfter("tokenValue", any())
+                userService.resetPassword("userId", "password", "new password")
+                tokenRepository.save(token)
             }
         }
     }
 
     @Test
-    fun `should not validate token for otp`() {
-        val token = Token(tokenId = "001", value = "token value")
-        val tokenValue = "token"
+    fun `should not reset user password if current password is not present`() {
+        val token = TokenBuilder(userId = "userId", otpId = null).build()
 
-        every { tokenRepository.findByValue(any()) } returns Mono.just(token)
+        every { tokenRepository.findByValueAndExpiredAtAfter(any(), any()) } returns Mono.just(token)
+        val unAuthorizedException = UnAuthorizedException(IOTError.IOT0103)
+        every { userService.resetPassword(any(), any(), any()) } returns Mono.error(unAuthorizedException)
 
-        val response = tokenService.validateTokenForOtp(tokenValue)
+        val response = tokenService.resetPassword(
+            ResetPasswordRequest(currentPassword = null, password = "password"),
+            "tokenValue"
+        )
 
         assertErrorWith(response) {
-            it shouldBe UnAuthorizedException(IOTError.IOT0103)
-            verify {
-                tokenRepository.findByValue(tokenValue)
+            it shouldBe unAuthorizedException
+            verify(exactly = 1) {
+                tokenRepository.findByValueAndExpiredAtAfter("tokenValue", any())
+                userService.resetPassword("userId", "", "password")
             }
         }
     }
 
     @Test
-    fun `should not validate token for otp if not exists in DB`() {
-        val tokenValue = "token"
+    fun `should reset user password without current password`() {
+        val userDetails = UserDetailsBuilder(userId = "userId").build()
+        val token = TokenBuilder(userId = "userId", otpId = "otpId").build()
 
-        every { tokenRepository.findByValue(any()) } returns Mono.empty()
+        every { tokenRepository.findByValueAndExpiredAtAfter(any(), any()) } returns Mono.just(token)
+        every { userService.resetPassword(any(), any()) } returns Mono.just(userDetails)
+        every { tokenRepository.save(any()) } returns Mono.just(token)
 
-        val response = tokenService.validateTokenForOtp(tokenValue)
+        val response = tokenService.resetPassword(
+            ResetPasswordRequest(currentPassword = null, password = "password"),
+            "tokenValue"
+        )
 
-        assertErrorWith(response) {
-            it shouldBe UnAuthorizedException(IOTError.IOT0103)
-            verify {
-                tokenRepository.findByValue(tokenValue)
+        assertNextWith(response) {
+            it shouldBe userDetails
+            verify(exactly = 1) {
+                tokenRepository.findByValueAndExpiredAtAfter("tokenValue", any())
+                userService.resetPassword("userId", "password")
+                tokenRepository.save(token)
             }
         }
     }

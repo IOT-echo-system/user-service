@@ -1,10 +1,12 @@
 package com.shiviraj.iot.authService.service
 
 import com.shiviraj.iot.authService.controller.view.GenerateOtpRequest
-import com.shiviraj.iot.authService.controller.view.ResetPasswordRequest
 import com.shiviraj.iot.authService.controller.view.VerifyOtpRequest
 import com.shiviraj.iot.authService.exception.IOTError
-import com.shiviraj.iot.authService.model.*
+import com.shiviraj.iot.authService.model.IdType
+import com.shiviraj.iot.authService.model.Otp
+import com.shiviraj.iot.authService.model.OtpState
+import com.shiviraj.iot.authService.model.Token
 import com.shiviraj.iot.authService.repository.OtpRepository
 import com.shiviraj.iot.loggingstarter.logOnError
 import com.shiviraj.iot.loggingstarter.logOnSuccess
@@ -43,12 +45,14 @@ class OtpService(
                     .logOnSuccess(message = "Set otp as expired")
                     .logOnError(errorMessage = "Failed to set otp as expired")
             }
-            .switchIfEmpty { createMono(Otp(otpId = "vidisse", value = "nobis", email = "elvin.jacobson@example.com")) }
+            .switchIfEmpty {
+                createMono(Otp(otpId = "vidisse", value = "nobis", email = "a@email.com", userId = "userId"))
+            }
             .flatMap { userService.getUserByEmail(generateOtpRequest.email) }
             .flatMap { userDetails ->
                 idGeneratorService.generateId(IdType.OTP_ID)
                     .flatMap { otpId ->
-                        otpRepository.save(Otp.create(otpId, userDetails.email))
+                        otpRepository.save(Otp.create(otpId, userDetails))
                     }
             }
             .logOnSuccess(message = "Successfully generated otp")
@@ -66,22 +70,12 @@ class OtpService(
             }
             .logOnSuccess(message = "Successfully verified otp")
             .logOnError(errorMessage = "Failed to verify otp")
-            .flatMap { tokenService.generateTokenWithOtp(it) }
-    }
-
-    fun resetPassword(resetPasswordRequest: ResetPasswordRequest, token: String): Mono<UserDetails> {
-        return tokenService.validate(token)
-            .flatMap { userService.resetPassword(it.userId, resetPasswordRequest) }
-            .onErrorResume {
-                tokenService.validateTokenForOtp(token)
-                    .flatMap { otpRepository.findByOtpIdAndState(it, OtpState.VERIFIED) }
-                    .flatMap {
-                        userService.resetPasswordByEmail(it.email, resetPasswordRequest.password)
-                    }
+            .flatMap {
+                tokenService.generateToken(
+                    userId = it.userId,
+                    expiredAt = LocalDateTime.now().plusMinutes(10),
+                    otpId = it.otpId
+                )
             }
-            .logOnSuccess(message = "Successfully reset user password")
-            .logOnError(errorMessage = "Failed to reset user password")
-        // set token as expired
     }
-
 }

@@ -1,9 +1,9 @@
 package com.shiviraj.iot.authService.controller
 
+import com.shiviraj.iot.authService.builder.OtpBuilder
+import com.shiviraj.iot.authService.builder.TokenBuilder
 import com.shiviraj.iot.authService.builder.UserDetailsBuilder
 import com.shiviraj.iot.authService.controller.view.*
-import com.shiviraj.iot.authService.model.Otp
-import com.shiviraj.iot.authService.model.Token
 import com.shiviraj.iot.authService.service.OtpService
 import com.shiviraj.iot.authService.service.TokenService
 import com.shiviraj.iot.authService.service.UserService
@@ -22,8 +22,11 @@ class AuthControllerTest {
     private val userService = mockk<UserService>()
     private val tokenService = mockk<TokenService>()
     private val otpService = mockk<OtpService>()
-    private val authController =
-        AuthController(userService = userService, tokenService = tokenService, otpService = otpService)
+    private val authController = AuthController(
+        userService = userService,
+        tokenService = tokenService,
+        otpService = otpService
+    )
 
     @BeforeEach
     fun setUp() {
@@ -59,7 +62,7 @@ class AuthControllerTest {
 
     @Test
     fun `should login with credentials`() {
-        val token = Token(tokenId = "tokenId", value = "value")
+        val token = TokenBuilder(tokenId = "tokenId", value = "value", userId = "userId").build()
         every { tokenService.login(any()) } returns Mono.just(token)
 
         val userLoginRequest = UserLoginRequest(email = "email", password = "password")
@@ -103,7 +106,7 @@ class AuthControllerTest {
 
     @Test
     fun `should generate otp`() {
-        val otp = Otp(otpId = "otpID", value = "otp", email = "example@email.com")
+        val otp = OtpBuilder(otpId = "otpID", value = "otp", email = "example@email.com").build()
         every { otpService.generateOtp(any()) } returns Mono.just(otp)
 
         val generateOtpRequest = GenerateOtpRequest(email = "example@email.com")
@@ -121,7 +124,7 @@ class AuthControllerTest {
 
     @Test
     fun `should verify otp`() {
-        val token = Token(tokenId = "tokenId", value = "value")
+        val token = TokenBuilder(tokenId = "tokenId", value = "value").build()
         every { otpService.verifyOtp(any()) } returns Mono.just(token)
 
 
@@ -139,7 +142,7 @@ class AuthControllerTest {
 
     @Test
     fun `should reset password`() {
-        every { otpService.resetPassword(any(), any()) } returns Mono.just(UserDetailsBuilder().build())
+        every { tokenService.resetPassword(any(), any()) } returns Mono.just(UserDetailsBuilder().build())
 
         val resetPasswordRequest = ResetPasswordRequest(currentPassword = null, password = "Password")
         val res = authController.resetPassword(resetPasswordRequest = resetPasswordRequest)
@@ -148,7 +151,7 @@ class AuthControllerTest {
             it shouldBe ResetPasswordResponse(success = true)
 
             verify(exactly = 1) {
-                otpService.resetPassword(resetPasswordRequest = resetPasswordRequest, token = "")
+                tokenService.resetPassword(resetPasswordRequest = resetPasswordRequest, tokenValue = "")
             }
         }
     }

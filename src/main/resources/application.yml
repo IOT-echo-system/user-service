@@ -14,6 +14,3 @@ eureka:
   client:
     service-url:
       defaultZone: ${SERVICE_REGISTRY_URL}/eureka
-app:
-  env:
-    secret-key: ${SECRET_KEY}

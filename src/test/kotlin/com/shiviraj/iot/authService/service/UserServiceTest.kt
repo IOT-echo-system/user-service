@@ -1,7 +1,6 @@
 package com.shiviraj.iot.authService.service
 
 import com.shiviraj.iot.authService.builder.UserDetailsBuilder
-import com.shiviraj.iot.authService.controller.view.ResetPasswordRequest
 import com.shiviraj.iot.authService.controller.view.UserLoginRequest
 import com.shiviraj.iot.authService.controller.view.UserSignUpRequest
 import com.shiviraj.iot.authService.exception.IOTError
@@ -186,8 +185,7 @@ class UserServiceTest {
         every { userRepository.save(any()) } returns Mono.just(userDetails)
         every { passwordEncoder.encode(any()) } returns "newEncodedPassword"
 
-        val resetPasswordRequest = ResetPasswordRequest(password = "new password", currentPassword = "password")
-        val response = userService.resetPassword("userId", resetPasswordRequest = resetPasswordRequest)
+        val response = userService.resetPassword("userId", currentPassword = "password", password = "new password")
 
         assertNextWith(response) {
             it shouldBe userDetails
@@ -209,8 +207,7 @@ class UserServiceTest {
         every { userRepository.findByEmail(any()) } returns Mono.just(userDetails)
         every { passwordEncoder.matches(any(), any()) } returns false
 
-        val resetPasswordRequest = ResetPasswordRequest(password = "new password")
-        val response = userService.resetPassword("userId", resetPasswordRequest = resetPasswordRequest)
+        val response = userService.resetPassword("userId", password = "new password", currentPassword = "")
 
         assertErrorWith(response) {
             it shouldBe BadDataException(IOTError.IOT0102)
@@ -224,19 +221,19 @@ class UserServiceTest {
     }
 
     @Test
-    fun `should reset user password by email`() {
+    fun `should reset user password with otp`() {
         val userDetails = UserDetailsBuilder(userId = "userId", email = "example@email.com", password = "encodedPassword").build()
-        every { userRepository.findByEmail(any()) } returns Mono.just(userDetails)
+        every { userRepository.findByUserId(any()) } returns Mono.just(userDetails)
         every { userRepository.save(any()) } returns Mono.just(userDetails)
         every { passwordEncoder.encode(any()) } returns "encodedPassword"
 
-        val response = userService.resetPasswordByEmail("example@email.com", password = "password")
+        val response = userService.resetPassword("userId", password = "password")
 
         assertNextWith(response) {
             it shouldBe userDetails
 
             verify(exactly = 1) {
-                userRepository.findByEmail("example@email.com")
+                userRepository.findByUserId("userId")
                 passwordEncoder.encode("password")
                 userRepository.save(userDetails.copy(password = "encodedPassword"))
             }

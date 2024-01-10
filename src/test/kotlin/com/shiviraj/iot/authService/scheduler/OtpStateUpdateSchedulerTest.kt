@@ -1,6 +1,6 @@
 package com.shiviraj.iot.authService.scheduler
 
-import com.shiviraj.iot.authService.model.Otp
+import com.shiviraj.iot.authService.builder.OtpBuilder
 import com.shiviraj.iot.authService.model.OtpState
 import com.shiviraj.iot.authService.repository.OtpRepository
 import io.mockk.*
@@ -30,7 +30,7 @@ class OtpStateUpdateSchedulerTest {
     fun `should set all otp as expired if older than 10 min`() {
         val before10Min = LocalDateTime.of(2023, 1, 1, 1, 0)
         val now = LocalDateTime.of(2023, 1, 1, 1, 10)
-        val otp = Otp(otpId = "otpId", value = "value", email = "example@email.com", createdAt = now)
+        val otp = OtpBuilder(otpId = "otpId", value = "value", email = "example@email.com", createdAt = now).build()
 
         every { LocalDateTime.now() } returns now
         every { otpRepository.findAllByStateAndCreatedAtBefore(any(), any()) } returns Flux.just(otp)

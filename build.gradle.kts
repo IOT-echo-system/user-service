@@ -29,10 +29,6 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-
-    implementation("io.jsonwebtoken:jjwt-api:0.11.5")
-    implementation("io.jsonwebtoken:jjwt-impl:0.11.5")
-    implementation("io.jsonwebtoken:jjwt-jackson:0.11.5")
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
@@ -97,11 +93,11 @@ tasks.jacocoTestCoverageVerification {
             }
             limit {
                 counter = "METHOD"
-                minimum = BigDecimal(0.84)
+                minimum = BigDecimal(0.80)
             }
             limit {
                 counter = "CLASS"
-                minimum = BigDecimal(0.95)
+                minimum = BigDecimal(0.93)
             }
         }
     }

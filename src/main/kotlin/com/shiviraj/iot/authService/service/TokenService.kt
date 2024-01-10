@@ -1,6 +1,6 @@
 package com.shiviraj.iot.authService.service
 
-import com.shiviraj.iot.authService.config.AppConfig
+import com.shiviraj.iot.authService.controller.view.ResetPasswordRequest
 import com.shiviraj.iot.authService.controller.view.UserLoginRequest
 import com.shiviraj.iot.authService.controller.view.ValidateTokenResponse
 import com.shiviraj.iot.authService.exception.IOTError
@@ -10,119 +10,75 @@ import com.shiviraj.iot.loggingstarter.logOnError
 import com.shiviraj.iot.loggingstarter.logOnSuccess
 import com.shiviraj.iot.userService.exceptions.UnAuthorizedException
 import com.shiviraj.iot.utils.service.IdGeneratorService
-import com.shiviraj.iot.utils.utils.createMono
 import com.shiviraj.iot.utils.utils.createMonoError
-import io.jsonwebtoken.Jwts
-import io.jsonwebtoken.SignatureAlgorithm
-import io.jsonwebtoken.io.Decoders
-import io.jsonwebtoken.security.Keys
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.switchIfEmpty
-import java.security.Key
-import java.util.*
+import java.time.LocalDateTime
 
 @Service
 class TokenService(
     private val tokenRepository: TokenRepository,
     private val idGeneratorService: IdGeneratorService,
     private val userService: UserService,
-    private val appConfig: AppConfig
 ) {
 
     fun login(userLoginRequest: UserLoginRequest): Mono<Token> {
         return userService.verifyCredentials(userLoginRequest)
-            .flatMap { userDetails ->
-                val value = generateToken(userDetails)
-                idGeneratorService.generateId(IdType.TOKEN_ID)
-                    .flatMap { tokenId ->
-                        tokenRepository.save(Token.from(tokenId = tokenId, value = value))
-                    }
-                    .logOnSuccess(
-                        message = "Successfully logged in user",
-                        searchableFields = mapOf("userId" to userDetails.userId)
-                    )
-                    .logOnError(
-                        errorMessage = "Failed to log in user",
-                        searchableFields = mapOf("userId" to userDetails.userId)
-                    )
-            }
+            .flatMap { generateToken(it.userId, LocalDateTime.now().plusDays(7), null) }
     }
+
 
     fun validate(token: String): Mono<ValidateTokenResponse> {
-        return tokenRepository.findByValue(token)
-            .flatMap {
-                try {
-                    val parseClaimsJws = Jwts.parserBuilder()
-                        .setSigningKey(getSignKey())
-                        .build()
-                        .parseClaimsJws(it.value)
-                    createMono(ValidateTokenResponse(parseClaimsJws.body.get("userId", String::class.java)))
-                } catch (e: Exception) {
-                    createMonoError(UnAuthorizedException(IOTError.IOT0103))
-                }
-            }
+        return tokenRepository.findByValueAndExpiredAtAfter(token)
+            .map { ValidateTokenResponse(it.userId) }
             .switchIfEmpty {
-                Mono.error(UnAuthorizedException(IOTError.IOT0103))
+                createMonoError(UnAuthorizedException(IOTError.IOT0103))
             }
-            .logOnSuccess(message = "Successfully validated authorization")
-            .logOnError(errorCode = IOTError.IOT0103.errorCode, errorMessage = "Failed to validate authorization")
+            .logOnSuccess(message = "Successfully validated token")
+            .logOnError(errorCode = IOTError.IOT0103.errorCode, errorMessage = "Failed to validate token")
     }
 
-
-    fun generateTokenWithOtp(otp: Otp): Mono<Token> {
+    fun generateToken(userId: UserId, expiredAt: LocalDateTime, otpId: OtpId?): Mono<Token> {
         return idGeneratorService.generateId(IdType.TOKEN_ID)
             .flatMap { tokenId ->
-                val value = generateTempToken(otp)
-                tokenRepository.save(Token.from(tokenId = tokenId, value = value))
+                tokenRepository.save(
+                    Token.generate(
+                        tokenId = tokenId,
+                        userId = userId,
+                        expiredAt = expiredAt,
+                        otpId = otpId
+                    )
+                )
             }
-            .logOnSuccess(message = "Successfully generated temp token", searchableFields = mapOf("otpId" to otp.otpId))
-            .logOnError(errorMessage = "Failed to generate temp token", searchableFields = mapOf("otpId" to otp.otpId))
-
+            .logOnSuccess(message = "Successfully generated token")
+            .logOnError(errorMessage = "Failed to generate token")
     }
 
-    fun validateTokenForOtp(token: String): Mono<OtpId> {
-        return tokenRepository.findByValue(token)
-            .flatMap {
-                try {
-                    val parseClaimsJws = Jwts.parserBuilder()
-                        .setSigningKey(getSignKey())
-                        .build()
-                        .parseClaimsJws(it.value)
-
-                    createMono(parseClaimsJws.body.get("otpId", String::class.java))
-                } catch (e: Exception) {
-                    createMonoError(UnAuthorizedException(IOTError.IOT0103))
-                }
+    fun resetPassword(resetPasswordRequest: ResetPasswordRequest, tokenValue: String): Mono<UserDetails> {
+        return tokenRepository.findByValueAndExpiredAtAfter(tokenValue)
+            .flatMap { token ->
+                resetPassword(token, resetPasswordRequest)
+                    .logOnSuccess(message = "Successfully reset user password")
+                    .logOnError(errorMessage = "Failed to reset user password")
+                    .flatMap { userDetails ->
+                        tokenRepository.save(token.setExpired())
+                            .map { userDetails }
+                    }
+                    .logOnSuccess(message = "set current token as expired")
+                    .logOnError(errorMessage = "Failed to set current token as expired")
             }
-            .switchIfEmpty {
-                Mono.error(UnAuthorizedException(IOTError.IOT0103))
-            }
-            .logOnSuccess(message = "Successfully validated authorization for otp token")
-            .logOnError(errorCode = IOTError.IOT0103.errorCode, errorMessage = "Failed to validate authorization for otp token")
     }
 
-
-    private fun generateTempToken(otp: Otp): String {
-        return Jwts.builder()
-            .setClaims(hashMapOf<String, Any>("optId" to otp.otpId))
-            .setSubject(otp.otpId)
-            .setIssuedAt(Date(System.currentTimeMillis()))
-            .setExpiration(Date(System.currentTimeMillis() + 1000 * 60 * 10))
-            .signWith(getSignKey(), SignatureAlgorithm.HS256).compact()
-    }
-
-    private fun generateToken(userDetails: UserDetails): String {
-        return Jwts.builder()
-            .setClaims(hashMapOf<String, Any>("userId" to userDetails.userId))
-            .setSubject(userDetails.userId)
-            .setIssuedAt(Date(System.currentTimeMillis()))
-            .setExpiration(Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7))
-            .signWith(getSignKey(), SignatureAlgorithm.HS256).compact()
-    }
-
-    private fun getSignKey(): Key {
-        val keyBytes = Decoders.BASE64.decode(appConfig.secretKey)
-        return Keys.hmacShaKeyFor(keyBytes)
+    private fun resetPassword(token: Token, resetPasswordRequest: ResetPasswordRequest): Mono<UserDetails> {
+        return if (token.otpId != null) {
+            userService.resetPassword(token.userId, resetPasswordRequest.password)
+        } else {
+            userService.resetPassword(
+                token.userId,
+                resetPasswordRequest.currentPassword ?: "",
+                resetPasswordRequest.password
+            )
+        }
     }
 }

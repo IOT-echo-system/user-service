@@ -46,6 +46,6 @@ class AuthController(
         @RequestBody @Validated resetPasswordRequest: ResetPasswordRequest,
         @RequestHeader("Authorization") token: String = ""
     ): Mono<ResetPasswordResponse> {
-        return otpService.resetPassword(resetPasswordRequest, token).map { ResetPasswordResponse(true) }
+        return tokenService.resetPassword(resetPasswordRequest, token).map { ResetPasswordResponse(true) }
     }
 }
