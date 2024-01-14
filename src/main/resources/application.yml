@@ -14,3 +14,10 @@ eureka:
   client:
     service-url:
       defaultZone: ${SERVICE_REGISTRY_URL}/eureka
+
+app:
+  mqtt:
+    broker: broker-from-auth
+    username: username-from-auth
+    clientId: ${spring.application.name}
+    password: password-from-auth

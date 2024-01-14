@@ -9,8 +9,12 @@ import com.shiviraj.iot.authService.model.UserId
 import com.shiviraj.iot.authService.repository.UserRepository
 import com.shiviraj.iot.loggingstarter.logOnError
 import com.shiviraj.iot.loggingstarter.logOnSuccess
+import com.shiviraj.iot.mqtt.model.AuditEvent
+import com.shiviraj.iot.mqtt.service.MqttPublisher
 import com.shiviraj.iot.userService.exceptions.BadDataException
 import com.shiviraj.iot.userService.exceptions.DataNotFoundException
+import com.shiviraj.iot.utils.audit.auditOnError
+import com.shiviraj.iot.utils.audit.auditOnSuccess
 import com.shiviraj.iot.utils.service.IdGeneratorService
 import com.shiviraj.iot.utils.utils.createMono
 import com.shiviraj.iot.utils.utils.createMonoError
@@ -24,6 +28,7 @@ class UserService(
     private val userRepository: UserRepository,
     private val idGeneratorService: IdGeneratorService,
     private val passwordEncoder: PasswordEncoder,
+    private val mqttPublisher: MqttPublisher
 ) {
     fun register(userDetails: UserSignUpRequest): Mono<UserDetails> {
         return userRepository.existsByEmail(userDetails.email)
@@ -33,9 +38,17 @@ class UserService(
                 } else {
                     idGeneratorService.generateId(IdType.USER_ID)
                         .flatMap { userId ->
-                            val user =
-                                UserDetails.from(userId, userDetails, passwordEncoder.encode(userDetails.password))
+                            val user = UserDetails.from(
+                                userId = userId,
+                                userDetails = userDetails,
+                                password = passwordEncoder.encode(userDetails.password)
+                            )
                             userRepository.save(user)
+                                .auditOnSuccess(
+                                    mqttPublisher = mqttPublisher,
+                                    event = AuditEvent.SIGN_UP,
+                                    userId = userId
+                                )
                         }
                         .logOnSuccess(
                             message = "Successfully registered new User",
@@ -56,13 +69,24 @@ class UserService(
                 val matches = passwordEncoder.matches(userDetails.password, details.password)
                 if (matches) {
                     createMono(details)
+                        .auditOnSuccess(
+                            mqttPublisher = mqttPublisher,
+                            event = AuditEvent.VERIFY_PASSWORD,
+                            userId = details.userId
+                        )
                 } else {
-                    createMonoError(BadDataException(IOTError.IOT0102))
+                    createMonoError<UserDetails>(BadDataException(IOTError.IOT0102))
+                        .auditOnError(
+                            mqttPublisher = mqttPublisher,
+                            event = AuditEvent.VERIFY_PASSWORD,
+                            userId = details.userId
+                        )
                 }
             }
             .switchIfEmpty {
                 createMonoError(BadDataException(IOTError.IOT0102))
             }
+
     }
 
     fun resetPassword(userId: UserId, password: String): Mono<UserDetails> {
@@ -70,6 +94,8 @@ class UserService(
             .flatMap {
                 userRepository.save(it.updatePassword(passwordEncoder.encode(password)))
             }
+            .auditOnSuccess(mqttPublisher = mqttPublisher, event = AuditEvent.RESET_PASSWORD, userId = userId)
+            .auditOnError(mqttPublisher = mqttPublisher, event = AuditEvent.RESET_PASSWORD, userId = userId)
             .logOnSuccess(message = "Successfully updated password")
             .logOnError(errorMessage = "Failed to update password")
     }
@@ -82,6 +108,8 @@ class UserService(
             .flatMap {
                 userRepository.save(it.updatePassword(passwordEncoder.encode(password)))
             }
+            .auditOnSuccess(mqttPublisher = mqttPublisher, event = AuditEvent.RESET_PASSWORD, userId = userId)
+            .auditOnError(mqttPublisher = mqttPublisher, event = AuditEvent.RESET_PASSWORD, userId = userId)
             .logOnSuccess(message = "Successfully updated password")
             .logOnError(errorMessage = "Failed to update password")
     }

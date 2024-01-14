@@ -8,33 +8,43 @@ import com.shiviraj.iot.authService.model.IdType
 import com.shiviraj.iot.authService.repository.UserRepository
 import com.shiviraj.iot.authService.testUtils.assertErrorWith
 import com.shiviraj.iot.authService.testUtils.assertNextWith
+import com.shiviraj.iot.mqtt.model.AuditEvent
+import com.shiviraj.iot.mqtt.model.AuditMessage
+import com.shiviraj.iot.mqtt.model.AuditStatus
+import com.shiviraj.iot.mqtt.model.MqttTopicName
+import com.shiviraj.iot.mqtt.service.MqttPublisher
 import com.shiviraj.iot.userService.exceptions.BadDataException
 import com.shiviraj.iot.userService.exceptions.DataNotFoundException
 import com.shiviraj.iot.utils.service.IdGeneratorService
 import io.kotest.matchers.shouldBe
-import io.mockk.clearAllMocks
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
+import io.mockk.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.security.crypto.password.PasswordEncoder
 import reactor.core.publisher.Mono
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 class UserServiceTest {
     private val userRepository = mockk<UserRepository>()
     private val idGeneratorService = mockk<IdGeneratorService>()
     private val passwordEncoder = mockk<PasswordEncoder>()
+    private val mqttPublisher = mockk<MqttPublisher>()
     private val userService = UserService(
         userRepository = userRepository,
         idGeneratorService = idGeneratorService,
-        passwordEncoder = passwordEncoder
+        passwordEncoder = passwordEncoder,
+        mqttPublisher = mqttPublisher
     )
+    private val mockTime = LocalDateTime.of(2024, 1, 1, 1, 1)
 
     @BeforeEach
     fun setUp() {
         clearAllMocks()
+        mockkStatic(LocalDateTime::class)
+        every { mqttPublisher.publish(any(), any()) } returns Unit
+        every { LocalDateTime.now(ZoneId.of("UTC")) } returns mockTime
     }
 
     @AfterEach
@@ -87,6 +97,18 @@ class UserServiceTest {
                         name = "name"
                     ).build()
                 )
+                mqttPublisher.publish(
+                    MqttTopicName.AUDIT,
+                    AuditMessage(
+                        status = AuditStatus.SUCCESS,
+                        userId = "001",
+                        metadata = mapOf(),
+                        event = AuditEvent.SIGN_UP,
+                        accountId = "missing-account-id",
+                        deviceId = "missing-device-id",
+                        timestamp = mockTime
+                    )
+                )
             }
         }
     }
@@ -94,7 +116,7 @@ class UserServiceTest {
     @Test
     fun `should verify credentials`() {
         val userDetails = UserLoginRequest(email = "email", password = "password")
-        val user = UserDetailsBuilder(email = "email", password = "encodedPassword").build()
+        val user = UserDetailsBuilder(userId = "userId", email = "email", password = "encodedPassword").build()
 
         every { userRepository.findByEmail(any()) } returns Mono.just(user)
         every { passwordEncoder.matches(any(), any()) } returns true
@@ -106,6 +128,18 @@ class UserServiceTest {
             verify(exactly = 1) {
                 passwordEncoder.matches("password", "encodedPassword")
                 userRepository.findByEmail("email")
+                mqttPublisher.publish(
+                    MqttTopicName.AUDIT,
+                    AuditMessage(
+                        status = AuditStatus.SUCCESS,
+                        userId = "userId",
+                        metadata = mapOf(),
+                        event = AuditEvent.VERIFY_PASSWORD,
+                        accountId = "missing-account-id",
+                        deviceId = "missing-device-id",
+                        timestamp = mockTime
+                    )
+                )
             }
         }
     }
@@ -129,7 +163,7 @@ class UserServiceTest {
     @Test
     fun `should give mono error if invalid password while verifying credentials`() {
         val userDetails = UserLoginRequest(email = "email", password = "password")
-        val user = UserDetailsBuilder(email = "email", password = "encodedPassword").build()
+        val user = UserDetailsBuilder(userId = "userId", email = "email", password = "encodedPassword").build()
 
         every { userRepository.findByEmail(any()) } returns Mono.just(user)
         every { passwordEncoder.matches(any(), any()) } returns false
@@ -141,6 +175,18 @@ class UserServiceTest {
             verify(exactly = 1) {
                 userRepository.findByEmail("email")
                 passwordEncoder.matches("password", "encodedPassword")
+                mqttPublisher.publish(
+                    MqttTopicName.AUDIT,
+                    AuditMessage(
+                        status = AuditStatus.FAILURE,
+                        userId = "userId",
+                        metadata = mapOf(),
+                        event = AuditEvent.VERIFY_PASSWORD,
+                        accountId = "missing-account-id",
+                        deviceId = "missing-device-id",
+                        timestamp = mockTime
+                    )
+                )
             }
         }
     }
@@ -178,7 +224,8 @@ class UserServiceTest {
 
     @Test
     fun `should reset user password`() {
-        val userDetails = UserDetailsBuilder(userId = "userId", email = "example@email.com", password = "encodedPassword").build()
+        val userDetails =
+            UserDetailsBuilder(userId = "userId", email = "example@email.com", password = "encodedPassword").build()
         every { userRepository.findByUserId(any()) } returns Mono.just(userDetails)
         every { userRepository.findByEmail(any()) } returns Mono.just(userDetails)
         every { passwordEncoder.matches(any(), any()) } returns true
@@ -193,16 +240,41 @@ class UserServiceTest {
             verify(exactly = 1) {
                 userRepository.findByUserId("userId")
                 userRepository.findByEmail("example@email.com")
-                passwordEncoder.matches( "password","encodedPassword")
+                passwordEncoder.matches("password", "encodedPassword")
                 passwordEncoder.encode("new password")
                 userRepository.save(userDetails.copy(password = "newEncodedPassword"))
+                mqttPublisher.publish(
+                    MqttTopicName.AUDIT,
+                    AuditMessage(
+                        status = AuditStatus.SUCCESS,
+                        userId = "userId",
+                        metadata = mapOf(),
+                        event = AuditEvent.VERIFY_PASSWORD,
+                        accountId = "missing-account-id",
+                        deviceId = "missing-device-id",
+                        timestamp = mockTime
+                    )
+                )
+                mqttPublisher.publish(
+                    MqttTopicName.AUDIT,
+                    AuditMessage(
+                        status = AuditStatus.SUCCESS,
+                        userId = "userId",
+                        metadata = mapOf(),
+                        event = AuditEvent.RESET_PASSWORD,
+                        accountId = "missing-account-id",
+                        deviceId = "missing-device-id",
+                        timestamp = mockTime
+                    )
+                )
             }
         }
     }
 
     @Test
     fun `should not reset user password if current password is not valid`() {
-        val userDetails = UserDetailsBuilder(userId = "userId", email = "example@email.com", password = "encodedPassword").build()
+        val userDetails =
+            UserDetailsBuilder(userId = "userId", email = "example@email.com", password = "encodedPassword").build()
         every { userRepository.findByUserId(any()) } returns Mono.just(userDetails)
         every { userRepository.findByEmail(any()) } returns Mono.just(userDetails)
         every { passwordEncoder.matches(any(), any()) } returns false
@@ -215,14 +287,39 @@ class UserServiceTest {
             verify(exactly = 1) {
                 userRepository.findByUserId("userId")
                 userRepository.findByEmail("example@email.com")
-                passwordEncoder.matches( "","encodedPassword")
+                passwordEncoder.matches("", "encodedPassword")
+                mqttPublisher.publish(
+                    MqttTopicName.AUDIT,
+                    AuditMessage(
+                        status = AuditStatus.FAILURE,
+                        userId = "userId",
+                        metadata = mapOf(),
+                        event = AuditEvent.VERIFY_PASSWORD,
+                        accountId = "missing-account-id",
+                        deviceId = "missing-device-id",
+                        timestamp = mockTime
+                    )
+                )
+                mqttPublisher.publish(
+                    MqttTopicName.AUDIT,
+                    AuditMessage(
+                        status = AuditStatus.FAILURE,
+                        userId = "userId",
+                        metadata = mapOf(),
+                        event = AuditEvent.RESET_PASSWORD,
+                        accountId = "missing-account-id",
+                        deviceId = "missing-device-id",
+                        timestamp = mockTime
+                    )
+                )
             }
         }
     }
 
     @Test
     fun `should reset user password with otp`() {
-        val userDetails = UserDetailsBuilder(userId = "userId", email = "example@email.com", password = "encodedPassword").build()
+        val userDetails =
+            UserDetailsBuilder(userId = "userId", email = "example@email.com", password = "encodedPassword").build()
         every { userRepository.findByUserId(any()) } returns Mono.just(userDetails)
         every { userRepository.save(any()) } returns Mono.just(userDetails)
         every { passwordEncoder.encode(any()) } returns "encodedPassword"
@@ -236,6 +333,18 @@ class UserServiceTest {
                 userRepository.findByUserId("userId")
                 passwordEncoder.encode("password")
                 userRepository.save(userDetails.copy(password = "encodedPassword"))
+                mqttPublisher.publish(
+                    MqttTopicName.AUDIT,
+                    AuditMessage(
+                        status = AuditStatus.SUCCESS,
+                        userId = "userId",
+                        metadata = mapOf(),
+                        event = AuditEvent.RESET_PASSWORD,
+                        accountId = "missing-account-id",
+                        deviceId = "missing-device-id",
+                        timestamp = mockTime
+                    )
+                )
             }
         }
     }

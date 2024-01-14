@@ -22,6 +22,8 @@ repositories {
 dependencies {
     implementation(files("./libs/logging-starter-0.0.1.jar"))
     implementation(files("./libs/iot-utils-starter-0.0.1.jar"))
+    implementation(files("./libs/mqtt-starter-0.0.1.jar"))
+    implementation("org.springframework.integration:spring-integration-mqtt:6.0.0")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")

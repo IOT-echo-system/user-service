@@ -10,8 +10,12 @@ import com.shiviraj.iot.authService.model.Token
 import com.shiviraj.iot.authService.repository.OtpRepository
 import com.shiviraj.iot.loggingstarter.logOnError
 import com.shiviraj.iot.loggingstarter.logOnSuccess
+import com.shiviraj.iot.mqtt.model.AuditEvent
+import com.shiviraj.iot.mqtt.service.MqttPublisher
 import com.shiviraj.iot.userService.exceptions.BadDataException
 import com.shiviraj.iot.userService.exceptions.TooManyRequestsException
+import com.shiviraj.iot.utils.audit.auditOnError
+import com.shiviraj.iot.utils.audit.auditOnSuccess
 import com.shiviraj.iot.utils.service.IdGeneratorService
 import com.shiviraj.iot.utils.utils.createMono
 import com.shiviraj.iot.utils.utils.createMonoError
@@ -25,7 +29,8 @@ class OtpService(
     private val idGeneratorService: IdGeneratorService,
     private val otpRepository: OtpRepository,
     private val tokenService: TokenService,
-    private val userService: UserService
+    private val userService: UserService,
+    private val mqttPublisher: MqttPublisher
 ) {
     fun generateOtp(generateOtpRequest: GenerateOtpRequest): Mono<Otp> {
         return otpRepository.countByEmailAndCreatedAtAfter(
@@ -53,7 +58,18 @@ class OtpService(
                 idGeneratorService.generateId(IdType.OTP_ID)
                     .flatMap { otpId ->
                         otpRepository.save(Otp.create(otpId, userDetails))
+                            .auditOnSuccess(
+                                mqttPublisher = mqttPublisher,
+                                event = AuditEvent.GENERATE_OTP,
+                                metadata = mapOf("otpId" to otpId),
+                                userId = userDetails.userId
+                            )
                     }
+                    .auditOnError(
+                        mqttPublisher = mqttPublisher,
+                        event = AuditEvent.GENERATE_OTP,
+                        userId = userDetails.userId
+                    )
             }
             .logOnSuccess(message = "Successfully generated otp")
             .logOnError(errorMessage = "Failed to generate otp")
@@ -64,8 +80,20 @@ class OtpService(
             .flatMap {
                 if (it.isValidOtp(verifyOtpRequest.otp)) {
                     otpRepository.save(it.setVerified())
+                        .auditOnSuccess(
+                            mqttPublisher = mqttPublisher,
+                            event = AuditEvent.VERIFY_OTP,
+                            metadata = mapOf("otpId" to it.otpId),
+                            userId = it.userId
+                        )
                 } else {
-                    createMonoError(BadDataException(IOTError.IOT0105))
+                    createMonoError<Otp>(BadDataException(IOTError.IOT0105))
+                        .auditOnError(
+                            mqttPublisher = mqttPublisher,
+                            event = AuditEvent.VERIFY_OTP,
+                            metadata = mapOf("otpId" to it.otpId),
+                            userId = it.userId
+                        )
                 }
             }
             .logOnSuccess(message = "Successfully verified otp")

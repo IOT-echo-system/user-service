@@ -8,7 +8,11 @@ import com.shiviraj.iot.authService.model.*
 import com.shiviraj.iot.authService.repository.TokenRepository
 import com.shiviraj.iot.loggingstarter.logOnError
 import com.shiviraj.iot.loggingstarter.logOnSuccess
+import com.shiviraj.iot.mqtt.model.AuditEvent
+import com.shiviraj.iot.mqtt.service.MqttPublisher
 import com.shiviraj.iot.userService.exceptions.UnAuthorizedException
+import com.shiviraj.iot.utils.audit.auditOnError
+import com.shiviraj.iot.utils.audit.auditOnSuccess
 import com.shiviraj.iot.utils.service.IdGeneratorService
 import com.shiviraj.iot.utils.utils.createMonoError
 import org.springframework.stereotype.Service
@@ -21,6 +25,7 @@ class TokenService(
     private val tokenRepository: TokenRepository,
     private val idGeneratorService: IdGeneratorService,
     private val userService: UserService,
+    private val mqttPublisher: MqttPublisher
 ) {
 
     fun login(userLoginRequest: UserLoginRequest): Mono<Token> {
@@ -50,7 +55,14 @@ class TokenService(
                         otpId = otpId
                     )
                 )
+                    .auditOnSuccess(
+                        mqttPublisher = mqttPublisher,
+                        event = AuditEvent.GENERATE_TOKEN,
+                        metadata = mapOf("tokenId" to tokenId),
+                        userId = userId
+                    )
             }
+            .auditOnError(mqttPublisher = mqttPublisher, event = AuditEvent.GENERATE_TOKEN, userId = userId)
             .logOnSuccess(message = "Successfully generated token")
             .logOnError(errorMessage = "Failed to generate token")
     }

@@ -9,33 +9,43 @@ import com.shiviraj.iot.authService.model.IdType
 import com.shiviraj.iot.authService.repository.TokenRepository
 import com.shiviraj.iot.authService.testUtils.assertErrorWith
 import com.shiviraj.iot.authService.testUtils.assertNextWith
+import com.shiviraj.iot.mqtt.model.AuditEvent
+import com.shiviraj.iot.mqtt.model.AuditMessage
+import com.shiviraj.iot.mqtt.model.AuditStatus
+import com.shiviraj.iot.mqtt.model.MqttTopicName
+import com.shiviraj.iot.mqtt.service.MqttPublisher
 import com.shiviraj.iot.userService.exceptions.UnAuthorizedException
 import com.shiviraj.iot.utils.service.IdGeneratorService
 import io.kotest.matchers.shouldBe
-import io.mockk.clearAllMocks
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
+import io.mockk.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import reactor.core.publisher.Mono
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 class TokenServiceTest {
 
     private val tokenRepository = mockk<TokenRepository>()
     private val idGeneratorService = mockk<IdGeneratorService>()
     private val userService = mockk<UserService>()
+    private val mqttPublisher = mockk<MqttPublisher>()
 
     private val tokenService = TokenService(
         tokenRepository = tokenRepository,
         idGeneratorService = idGeneratorService,
         userService = userService,
+        mqttPublisher = mqttPublisher
     )
+        private val mockTime = LocalDateTime.of(2024, 1, 1, 1, 1)
 
     @BeforeEach
     fun setUp() {
         clearAllMocks()
+        mockkStatic(LocalDateTime::class)
+        every { mqttPublisher.publish(any(), any()) } returns Unit
+        every { LocalDateTime.now(ZoneId.of("UTC")) } returns mockTime
     }
 
     @AfterEach
@@ -62,6 +72,15 @@ class TokenServiceTest {
                 userService.verifyCredentials(credentials)
                 idGeneratorService.generateId(IdType.TOKEN_ID)
                 tokenRepository.save(any())
+                mqttPublisher.publish(MqttTopicName.AUDIT, AuditMessage(
+                    status =AuditStatus.SUCCESS,
+                    userId = "userId",
+                    metadata = mapOf("tokenId" to "001"),
+                    event =AuditEvent.GENERATE_TOKEN,
+                    accountId = "missing-account-id",
+                    deviceId = "missing-device-id",
+                    timestamp = mockTime
+                ))
             }
         }
     }
@@ -76,7 +95,7 @@ class TokenServiceTest {
 
         assertErrorWith(response) {
             it shouldBe UnAuthorizedException(IOTError.IOT0103)
-            verify {
+            verify(exactly = 1) {
                 tokenRepository.findByValueAndExpiredAtAfter(tokenValue, any())
             }
         }
