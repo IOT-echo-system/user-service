@@ -3,14 +3,14 @@ package com.shiviraj.iot.authService.service
 import com.shiviraj.iot.authService.controller.view.GenerateOtpRequest
 import com.shiviraj.iot.authService.controller.view.VerifyOtpRequest
 import com.shiviraj.iot.authService.exception.IOTError
-import com.shiviraj.iot.authService.model.IdType
-import com.shiviraj.iot.authService.model.Otp
-import com.shiviraj.iot.authService.model.OtpState
-import com.shiviraj.iot.authService.model.Token
+import com.shiviraj.iot.authService.model.*
 import com.shiviraj.iot.authService.repository.OtpRepository
 import com.shiviraj.iot.loggingstarter.logOnError
 import com.shiviraj.iot.loggingstarter.logOnSuccess
 import com.shiviraj.iot.mqtt.model.AuditEvent
+import com.shiviraj.iot.mqtt.model.CommunicationMessage
+import com.shiviraj.iot.mqtt.model.CommunicationType
+import com.shiviraj.iot.mqtt.model.MqttTopicName
 import com.shiviraj.iot.mqtt.service.MqttPublisher
 import com.shiviraj.iot.userService.exceptions.BadDataException
 import com.shiviraj.iot.userService.exceptions.TooManyRequestsException
@@ -58,6 +58,7 @@ class OtpService(
                 idGeneratorService.generateId(IdType.OTP_ID)
                     .flatMap { otpId ->
                         otpRepository.save(Otp.create(otpId, userDetails))
+                            .map { sendEmail(it, userDetails) }
                             .auditOnSuccess(
                                 mqttPublisher = mqttPublisher,
                                 event = AuditEvent.GENERATE_OTP,
@@ -105,5 +106,17 @@ class OtpService(
                     otpId = it.otpId
                 )
             }
+    }
+
+    private fun sendEmail(otp: Otp, userDetails: UserDetails): Otp {
+        mqttPublisher.publish(
+            MqttTopicName.COMMUNICATION, CommunicationMessage(
+                type = CommunicationType.OTP,
+                to = otp.email,
+                userId = otp.userId,
+                metadata = mapOf("name" to userDetails.name, "otp" to otp.value)
+            )
+        )
+        return otp
     }
 }

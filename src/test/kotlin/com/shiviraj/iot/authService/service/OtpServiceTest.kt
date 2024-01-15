@@ -11,10 +11,7 @@ import com.shiviraj.iot.authService.model.UserDetails
 import com.shiviraj.iot.authService.repository.OtpRepository
 import com.shiviraj.iot.authService.testUtils.assertErrorWith
 import com.shiviraj.iot.authService.testUtils.assertNextWith
-import com.shiviraj.iot.mqtt.model.AuditEvent
-import com.shiviraj.iot.mqtt.model.AuditMessage
-import com.shiviraj.iot.mqtt.model.AuditStatus
-import com.shiviraj.iot.mqtt.model.MqttTopicName
+import com.shiviraj.iot.mqtt.model.*
 import com.shiviraj.iot.mqtt.service.MqttPublisher
 import com.shiviraj.iot.userService.exceptions.BadDataException
 import com.shiviraj.iot.userService.exceptions.TooManyRequestsException
@@ -85,6 +82,16 @@ class OtpServiceTest {
                 otpRepository.findByEmailAndState("example@email.com", OtpState.GENERATED)
                 userService.getUserByEmail("example@email.com")
                 idGeneratorService.generateId(IdType.OTP_ID)
+
+                /*mqttPublisher.publish(
+                    MqttTopicName.COMMUNICATION,
+                    CommunicationMessage(
+                        userId = "userId",
+                        metadata = mapOf("name" to "User", "otp" to "value"),
+                        type = CommunicationType.OTP,
+                        to = "example@email.com"
+                    )
+                )*/
                 mqttPublisher.publish(
                     MqttTopicName.AUDIT, AuditMessage(
                         status = AuditStatus.SUCCESS,
