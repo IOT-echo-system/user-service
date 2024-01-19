@@ -74,8 +74,15 @@ class UserServiceTest {
     @Test
     fun `should register a new user`() {
         val userDetails = UserSignUpRequest(name = "name", email = "email", password = "password")
-        val user = UserDetailsBuilder().build()
+        val user = UserDetailsBuilder(
+            name = "name",
+            email = "email",
+            password = "encodedPassword",
+            userId = "001",
+            registeredAt = mockTime
+        ).build()
 
+        every { LocalDateTime.now() } returns mockTime
         every { userRepository.existsByEmail(any()) } returns Mono.just(false)
         every { userRepository.save(any()) } returns Mono.just(user)
         every { passwordEncoder.encode(any()) } returns "encodedPassword"
@@ -89,14 +96,7 @@ class UserServiceTest {
                 passwordEncoder.encode("password")
                 idGeneratorService.generateId(IdType.USER_ID)
                 userRepository.existsByEmail("email")
-                userRepository.save(
-                    UserDetailsBuilder(
-                        userId = "001",
-                        password = "encodedPassword",
-                        email = "email",
-                        name = "name"
-                    ).build()
-                )
+                userRepository.save(user)
                 mqttPublisher.publish(
                     MqttTopicName.AUDIT,
                     AuditMessage(

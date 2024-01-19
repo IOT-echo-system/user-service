@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.TypeAlias
 import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document
+import java.time.LocalDateTime
 
 const val USER_COLLECTION = "users"
 
@@ -20,6 +21,7 @@ data class UserDetails(
     @Indexed(unique = true)
     val email: String,
     var password: String,
+    val registeredAt: LocalDateTime = LocalDateTime.now()
 ) {
     fun updatePassword(encodedPassword: String): UserDetails {
         this.password = encodedPassword
