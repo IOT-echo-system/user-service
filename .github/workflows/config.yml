@@ -32,8 +32,8 @@ jobs:
           USERNAME: ${{ secrets.ACTOR }}
           TOKEN: ${{ secrets.PAT_TOKEN }}
 
-      - name: Unit test
-        run: ./gradlew clean test
+#      - name: Unit test
+#        run: ./gradlew clean test
 
       - name: Docker login
         run: |

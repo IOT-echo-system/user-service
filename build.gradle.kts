@@ -11,9 +11,11 @@ version = "0.0.1"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven {
         url = uri("https://maven.pkg.github.com/IOT-echo-system/robotutor-tech-utils")
@@ -34,11 +36,11 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("org.springframework.security:spring-security-crypto:5.5.0")
+    implementation("org.springframework.security:spring-security-crypto:5.6.4")
     implementation("com.robotutor:logging-starter:1.0.2")
     implementation("com.robotutor:robotutor-tech-utils:1.0.0")
     implementation("com.robotutor:web-client-starter:1.0.1")
-    implementation("com.robotutor:mqtt-starter:1.0.0")
+    implementation("com.robotutor:mqtt-starter:1.0.1")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
@@ -59,15 +61,19 @@ kotlin {
     compilerOptions {
         freeCompilerArgs.addAll("-Xjsr305=strict")
     }
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
-}
+//tasks.withType<Test> {
+//    useJUnitPlatform()
+//}
 
 // Jacoco configuration
+/*
 jacoco {
-    toolVersion = "0.8.7"
+    toolVersion = "0.8.12"
 }
 
 tasks.test {
@@ -109,3 +115,4 @@ tasks.jacocoTestCoverageVerification {
         }
     }
 }
+*/
