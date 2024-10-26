@@ -14,3 +14,20 @@ app:
     username: ${MQTT_USERNAME}
     clientId: ${spring.application.name}
     password: ${MQTT_PASSWORD}
+  utils:
+    auth-service-base-url: http://localhost:${server.port}
+    open-api-endpoints:
+      - "/auth/sign-up"
+      - "/auth/login"
+      - "/auth/validate"
+      - "/auth/generate-otp"
+      - "/auth/verify-otp"
+    open-api-end-points-for-account:
+      - "/accounts"
+      - "/roles"
+      - "/accounts/validate"
+      - "/auth/update-token"
+  auth:
+    account-gateway:
+      base-url: http://localhost:${server.port}
+      validate-role-and-account-path: '/accounts/validate'

@@ -1,10 +1,8 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
     id("org.springframework.boot") version "3.2.0"
     id("io.spring.dependency-management") version "1.1.4"
-    kotlin("jvm") version "1.9.20"
-    kotlin("plugin.spring") version "1.9.20"
+    kotlin("jvm") version "2.0.0"
+    kotlin("plugin.spring") version "2.0.0"
     id("jacoco")
 }
 
@@ -12,18 +10,22 @@ group = "com.shiviraj.iot"
 version = "0.0.1"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
 }
 
 repositories {
     mavenCentral()
+    maven {
+        url = uri("https://maven.pkg.github.com/IOT-echo-system/robotutor-tech-utils")
+        credentials {
+            username = project.findProperty("gpr.user") as String? ?: System.getenv("USERNAME")
+            password = project.findProperty("gpr.token") as String? ?: System.getenv("TOKEN")
+        }
+    }
 }
 
 dependencies {
-    implementation(files("./libs/logging-starter-0.0.1.jar"))
-    implementation(files("./libs/iot-utils-starter-0.0.1.jar"))
-    implementation(files("./libs/mqtt-starter-0.0.1.jar"))
-    implementation ("com.google.code.gson:gson:2.8.8")
+    implementation("com.google.code.gson:gson:2.8.9")
     implementation("org.springframework.integration:spring-integration-mqtt:6.0.0")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -32,8 +34,11 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-//    implementation 'org.springframework.security:spring-security-core:5.5.0'
-    implementation ("org.springframework.security:spring-security-crypto:5.5.0")
+    implementation("org.springframework.security:spring-security-crypto:5.5.0")
+    implementation("com.robotutor:logging-starter:1.0.2")
+    implementation("com.robotutor:robotutor-tech-utils:1.0.0")
+    implementation("com.robotutor:web-client-starter:1.0.1")
+    implementation("com.robotutor:mqtt-starter:1.0.0")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
@@ -43,17 +48,16 @@ dependencies {
     testImplementation("io.kotest:kotest-assertions-core-jvm:5.8.0")
 }
 
-
 dependencyManagement {
     imports {
         mavenBom("org.springframework.cloud:spring-cloud-dependencies:2023.0.0")
     }
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        freeCompilerArgs += "-Xjsr305=strict"
-        jvmTarget = "17"
+
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.addAll("-Xjsr305=strict")
     }
 }
 
@@ -61,7 +65,7 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-// Jacoco configuration`
+// Jacoco configuration
 jacoco {
     toolVersion = "0.8.7"
 }
@@ -73,7 +77,6 @@ tasks.test {
 tasks.jacocoTestReport {
     dependsOn(tasks.test)
     finalizedBy(tasks.jacocoTestCoverageVerification)
-
 }
 
 tasks.jacocoTestCoverageVerification {
