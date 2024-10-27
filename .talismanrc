@@ -1,6 +1,6 @@
 fileignoreconfig:
 - filename: build.gradle.kts
-  checksum: 4c83be8725903df39ff281968cda848a35b774d690f470068900d04284c3f3ef
+  checksum: 440e1054e062ebcec97d0c5cb704e47f1f439031bf813b01fd1a1a962294f112
 - filename: src/main/kotlin/com/robotutor/iot/authService/controllers/AuthController.kt
   checksum: 093274b91df23dd74ce3ea3f525af68e963c3f8a6af132b32e4d4c7c5c2e2cfc
 - filename: src/main/kotlin/com/robotutor/iot/authService/services/TokenService.kt

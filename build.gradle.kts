@@ -6,24 +6,30 @@ plugins {
     id("jacoco")
 }
 
-group = "com.shiviraj.iot"
+group = "com.robotutor.iot"
 version = "0.0.1"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
 }
 
 repositories {
-    mavenLocal()
     mavenCentral()
-    maven {
-        url = uri("https://maven.pkg.github.com/IOT-echo-system/robotutor-tech-utils")
-        credentials {
-            username = project.findProperty("gpr.user") as String? ?: System.getenv("USERNAME")
-            password = project.findProperty("gpr.token") as String? ?: System.getenv("TOKEN")
+
+    fun githubMavenRepository(name: String) {
+        maven {
+            url = uri("https://maven.pkg.github.com/IOT-echo-system/$name")
+            credentials {
+                username = project.findProperty("gpr.user") as String? ?: System.getenv("USERNAME")
+                password = project.findProperty("gpr.token") as String? ?: System.getenv("TOKEN")
+            }
         }
     }
+
+    githubMavenRepository("robotutor-tech-utils")
+    githubMavenRepository("mqtt-starter")
+    githubMavenRepository("web-client-starter")
+    githubMavenRepository("logging-starter")
 }
 
 dependencies {
@@ -37,7 +43,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.security:spring-security-crypto:5.6.4")
-    implementation("com.robotutor:logging-starter:1.0.2")
+    implementation("com.robotutor:logging-starter:1.0.0")
     implementation("com.robotutor:robotutor-tech-utils:1.0.0")
     implementation("com.robotutor:web-client-starter:1.0.1")
     implementation("com.robotutor:mqtt-starter:1.0.1")

@@ -62,7 +62,7 @@ class OtpService(
                             .auditOnSuccess(
                                 event = AuditEvent.GENERATE_OTP,
                                 metadata = mapOf("otpId" to otpId),
-                                userId = userDetails.userId
+                                userId = userDetails.userId,
                             )
                     }
                     .auditOnError(event = AuditEvent.GENERATE_OTP, userId = userDetails.userId)
