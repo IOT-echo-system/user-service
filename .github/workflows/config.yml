@@ -26,7 +26,7 @@ jobs:
       - name: Build with Gradle
         uses: gradle/gradle-build-action@v2
         with:
-          gradle-version: '8.5'
+          gradle-version: '8.10'
           arguments: build
         env:
           USERNAME: ${{ secrets.ACTOR }}
