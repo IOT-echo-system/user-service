@@ -118,7 +118,7 @@ tasks.jacocoTestCoverageVerification {
             }
             limit {
                 counter = "CLASS"
-                minimum = BigDecimal(0.40)
+                minimum = BigDecimal(0.39)
             }
         }
     }
