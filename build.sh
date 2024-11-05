@@ -15,4 +15,4 @@
 
 ./gradlew clean build
 
-docker buildx build --no-cache --platform=linux/arm64,linux/amd64 -t shiviraj/auth-service:latest --push .
+docker buildx build --no-cache --platform=linux/arm64,linux/amd64 -t shiviraj/user-service:latest --push .

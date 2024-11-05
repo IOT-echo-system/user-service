@@ -1,8 +1,14 @@
 fileignoreconfig:
-- filename: build.gradle.kts
-  checksum: 440e1054e062ebcec97d0c5cb704e47f1f439031bf813b01fd1a1a962294f112
-- filename: src/main/kotlin/com/robotutor/iot/authService/controllers/AuthController.kt
-  checksum: 093274b91df23dd74ce3ea3f525af68e963c3f8a6af132b32e4d4c7c5c2e2cfc
-- filename: src/main/kotlin/com/robotutor/iot/authService/services/TokenService.kt
-  checksum: 5da9a81846d0f5c8fd43f9948b5cce0ea615ebb7f2e7ef12a88e857eee211a2d
+- filename: src/main/kotlin/com/robotutor/userService/config/AuthConfig.kt
+  checksum: 798552dcf2baa14034b212c988e56f10faf1aa9af67da9f965a6edbb75ca294f
+- filename: src/main/kotlin/com/robotutor/userService/services/UserService.kt
+  checksum: 750d5bf3a9a82cac78fa767c277110c73c060d33f8a0cf1ee610ff7ec6ce8cb5
+- filename: src/main/kotlin/com/robotutor/userService/gateway/AuthServiceGateway.kt
+  checksum: b1522e3d1ca433bca9a9669b29371923792f770c40711d029c567559e4d8a183
+- filename: src/test/kotlin/com/robotutor/authService/testUtils/ReactiveAssertions.kt
+  checksum: 78bebaf26db96fdc72b17b8c9c711cdebb7d3ebbe2bac2fbe0b1887c8ccdd663
+- filename: src/main/resources/application.yml
+  checksum: 2a5dc803c857645c5b85c2dccc87a7c5db9b518a270ce5249387d807317cf9ea
+- filename: src/test/kotlin/com/robotutor/userService/service/UserServiceTest.kt
+  checksum: 51942e6e9a9dfdda8ba66b7faf74178d6b63b7953fd8963f13ef2e9c99e2da8a
 version: ""

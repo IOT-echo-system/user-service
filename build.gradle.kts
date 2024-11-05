@@ -44,10 +44,11 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.security:spring-security-crypto:5.6.4")
     implementation("com.robotutor:logging-starter:1.0.0")
-    implementation("com.robotutor:robotutor-tech-utils:1.0.0")
+    implementation("com.robotutor:robotutor-tech-utils:1.0.8")
     implementation("com.robotutor:web-client-starter:1.0.1")
     implementation("com.robotutor:mqtt-starter:1.0.1")
 
+    testImplementation("com.robotutor:robotutor-tech-utils:1.0.8:tests")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.springframework.security:spring-security-test")
@@ -72,12 +73,13 @@ kotlin {
     }
 }
 
-//tasks.withType<Test> {
-//    useJUnitPlatform()
-//}
+tasks.withType<Test> {
+    useJUnitPlatform()
+    jvmArgs("-XX:+EnableDynamicAgentLoading")
+}
 
 // Jacoco configuration
-/*
+
 jacoco {
     toolVersion = "0.8.12"
 }
@@ -100,7 +102,7 @@ tasks.jacocoTestCoverageVerification {
         rule {
             limit {
                 counter = "INSTRUCTION"
-                minimum = BigDecimal(0.93)
+                minimum = BigDecimal(0.52)
             }
             limit {
                 counter = "BRANCH"
@@ -108,17 +110,16 @@ tasks.jacocoTestCoverageVerification {
             }
             limit {
                 counter = "LINE"
-                minimum = BigDecimal(0.95)
+                minimum = BigDecimal(0.57)
             }
             limit {
                 counter = "METHOD"
-                minimum = BigDecimal(0.80)
+                minimum = BigDecimal(0.41)
             }
             limit {
                 counter = "CLASS"
-                minimum = BigDecimal(0.93)
+                minimum = BigDecimal(0.40)
             }
         }
     }
 }
-*/

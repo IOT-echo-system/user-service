@@ -1,12 +1,12 @@
 server:
-  port: ${PORT:9001}
+  port: ${PORT:9002}
 
 spring:
   data:
     mongodb:
-      uri: ${MONGODB_URL}/auth
+      uri: ${MONGODB_URL}/user-service
   application:
-    name: AUTH-SERVICE
+    name: USER-SERVICE
 
 app:
   mqtt:
@@ -15,19 +15,9 @@ app:
     clientId: ${spring.application.name}
     password: ${MQTT_PASSWORD}
   utils:
-    auth-service-base-url: http://localhost:${server.port}
+    auth-service-base-url: ${AUTH_SERVICE_BASE_URL}
     open-api-endpoints:
-      - "/auth/sign-up"
-      - "/auth/login"
-      - "/auth/validate"
-      - "/auth/generate-otp"
-      - "/auth/verify-otp"
-    open-api-end-points-for-account:
-      - "/accounts"
-      - "/roles"
-      - "/accounts/validate"
-      - "/auth/update-token"
+      - /users/registration
   auth:
-    account-gateway:
-      base-url: http://localhost:${server.port}
-      validate-role-and-account-path: '/accounts/validate'
+    base-url: ${AUTH_SERVICE_BASE_URL}
+    save-password: '/auth/password'
