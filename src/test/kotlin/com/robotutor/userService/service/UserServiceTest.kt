@@ -51,15 +51,16 @@ class UserServiceTest {
     @Test
     fun `should not register a new user if already registered`() {
         val userDetails = UserRegistrationRequest(name = "name", email = "email", password = "password")
+        val user = UserDetailsBuilder().build()
 
-        every { userRepository.existsByEmail(any()) } returns Mono.just(true)
+        every { userRepository.findByEmail(any()) } returns Mono.just(user)
 
         val response = userService.register(userDetails)
 
         assertErrorWith(response) {
             it shouldBe BadDataException(IOTError.IOT0201)
             verify(exactly = 1) {
-                userRepository.existsByEmail("email")
+                userRepository.findByEmail("email")
             }
             verify(exactly = 0) {
                 userRepository.save(any())
@@ -70,15 +71,10 @@ class UserServiceTest {
     @Test
     fun `should register a new user`() {
         val userDetails = UserRegistrationRequest(name = "name", email = "email", password = "password")
-        val user = UserDetailsBuilder(
-            name = "name",
-            email = "email",
-            userId = "001",
-            registeredAt = mockTime
-        ).build()
+        val user = UserDetailsBuilder(name = "name", email = "email", userId = "001", registeredAt = mockTime).build()
 
         every { LocalDateTime.now() } returns mockTime
-        every { userRepository.existsByEmail(any()) } returns Mono.just(false)
+        every { userRepository.findByEmail(any()) } returns Mono.empty()
         every { userRepository.save(any()) } returns Mono.just(user)
         every { idGeneratorService.generateId(any()) } returns Mono.just("001")
         every { authServiceGateway.saveUserPassword(any(), any()) } returns Mono.just(true)
@@ -90,7 +86,7 @@ class UserServiceTest {
             it shouldBe user
             verify(exactly = 1) {
                 idGeneratorService.generateId(IdType.USER_ID)
-                userRepository.existsByEmail("email")
+                userRepository.findByEmail("email")
                 userRepository.save(user)
                 authServiceGateway.saveUserPassword("001", "password")
             }
@@ -120,7 +116,7 @@ class UserServiceTest {
         val response = userService.getUserByEmail("example@email.com")
 
         assertErrorWith(response) {
-            it shouldBe DataNotFoundException(IOTError.IOT0206)
+            it shouldBe DataNotFoundException(IOTError.IOT0202)
 
             verify(exactly = 1) {
                 userRepository.findByEmail("example@email.com")

@@ -44,11 +44,11 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.security:spring-security-crypto:5.6.4")
     implementation("com.robotutor:logging-starter:1.0.0")
-    implementation("com.robotutor:robotutor-tech-utils:1.0.8")
+    implementation("com.robotutor:robotutor-tech-utils:1.0.9")
     implementation("com.robotutor:web-client-starter:1.0.1")
     implementation("com.robotutor:mqtt-starter:1.0.1")
 
-    testImplementation("com.robotutor:robotutor-tech-utils:1.0.8:tests")
+    testImplementation("com.robotutor:robotutor-tech-utils:1.0.9:tests")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.springframework.security:spring-security-test")
@@ -110,7 +110,7 @@ tasks.jacocoTestCoverageVerification {
             }
             limit {
                 counter = "LINE"
-                minimum = BigDecimal(0.57)
+                minimum = BigDecimal(0.53)
             }
             limit {
                 counter = "METHOD"

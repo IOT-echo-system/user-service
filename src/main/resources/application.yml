@@ -16,6 +16,7 @@ app:
     password: ${MQTT_PASSWORD}
   utils:
     auth-service-base-url: ${AUTH_SERVICE_BASE_URL}
+    internal-access-token: ${INTERNAL_ACCESS_TOKEN}
     open-api-endpoints:
       - /users/registration
   auth:
