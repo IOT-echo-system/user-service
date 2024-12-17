@@ -8,6 +8,19 @@ spring:
   application:
     name: USER-SERVICE
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_BROKERS:localhost:3030}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: reactive-audit-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+    listener:
+      ack-mode: manual
+
 app:
   utils:
     auth-service-base-url: ${AUTH_SERVICE_BASE_URL}

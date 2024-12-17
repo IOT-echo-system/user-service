@@ -8,7 +8,7 @@ fileignoreconfig:
 - filename: src/test/kotlin/com/robotutor/authService/testUtils/ReactiveAssertions.kt
   checksum: 78bebaf26db96fdc72b17b8c9c711cdebb7d3ebbe2bac2fbe0b1887c8ccdd663
 - filename: src/main/resources/application.yml
-  checksum: 2a5dc803c857645c5b85c2dccc87a7c5db9b518a270ce5249387d807317cf9ea
+  checksum: 7c4527a800342301ca696e05940e68348f889dc75d751a3cc41451db332120fc
 - filename: src/test/kotlin/com/robotutor/userService/service/UserServiceTest.kt
   checksum: 51942e6e9a9dfdda8ba66b7faf74178d6b63b7953fd8963f13ef2e9c99e2da8a
 version: ""
