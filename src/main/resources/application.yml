@@ -9,11 +9,6 @@ spring:
     name: USER-SERVICE
 
 app:
-  mqtt:
-    broker: ${MQTT_BROKER}
-    username: ${MQTT_USERNAME}
-    clientId: ${spring.application.name}
-    password: ${MQTT_PASSWORD}
   utils:
     auth-service-base-url: ${AUTH_SERVICE_BASE_URL}
     internal-access-token: ${INTERNAL_ACCESS_TOKEN}

@@ -3,7 +3,7 @@ package com.robotutor.userService.service
 import com.robotutor.iot.exceptions.BadDataException
 import com.robotutor.iot.exceptions.DataNotFoundException
 import com.robotutor.iot.service.IdGeneratorService
-import com.robotutor.iot.services.MqttPublisher
+import com.robotutor.iot.services.KafkaPublisher
 import com.robotutor.iot.utils.assertErrorWith
 import com.robotutor.iot.utils.assertNextWith
 import com.robotutor.userService.builder.UserDetailsBuilder
@@ -26,7 +26,7 @@ class UserServiceTest {
     private val userRepository = mockk<UserRepository>()
     private val idGeneratorService = mockk<IdGeneratorService>()
     private val authServiceGateway = mockk<AuthServiceGateway>()
-    private val mqttPublisher = mockk<MqttPublisher>()
+    private val kafkaPublisher = mockk<KafkaPublisher>()
 
     private val userService = UserService(
         userRepository = userRepository,
@@ -40,7 +40,7 @@ class UserServiceTest {
         clearAllMocks()
         mockkStatic(LocalDateTime::class)
         every { LocalDateTime.now(ZoneId.of("UTC")) } returns mockTime
-        every { mqttPublisher.publish(any(), any()) } just Runs
+        every { kafkaPublisher.publish(any(), any(), any()) } just Runs
     }
 
     @AfterEach
@@ -80,7 +80,7 @@ class UserServiceTest {
         every { authServiceGateway.saveUserPassword(any(), any()) } returns Mono.just(true)
 
         val response = userService.register(userDetails)
-            .contextWrite { it.put(MqttPublisher::class.java, mqttPublisher) }
+            .contextWrite { it.put(KafkaPublisher::class.java, kafkaPublisher) }
 
         assertNextWith(response) {
             it shouldBe user

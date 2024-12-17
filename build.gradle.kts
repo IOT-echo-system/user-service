@@ -27,14 +27,13 @@ repositories {
     }
 
     githubMavenRepository("robotutor-tech-utils")
-    githubMavenRepository("mqtt-starter")
     githubMavenRepository("web-client-starter")
     githubMavenRepository("logging-starter")
+    githubMavenRepository("kafka-starter")
 }
 
 dependencies {
     implementation("com.google.code.gson:gson:2.8.9")
-    implementation("org.springframework.integration:spring-integration-mqtt:6.0.0")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
@@ -43,10 +42,11 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.security:spring-security-crypto:5.6.4")
+
     implementation("com.robotutor:logging-starter:1.0.0")
     implementation("com.robotutor:robotutor-tech-utils:1.0.11")
     implementation("com.robotutor:web-client-starter:1.0.1")
-    implementation("com.robotutor:mqtt-starter:1.0.1")
+    implementation("com.robotutor:kafka-starter:1.0.2")
 
     testImplementation("com.robotutor:robotutor-tech-utils:1.0.11:tests")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
