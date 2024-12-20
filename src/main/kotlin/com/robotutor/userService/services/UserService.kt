@@ -3,7 +3,6 @@ package com.robotutor.userService.services
 import com.robotutor.iot.auditOnSuccess
 import com.robotutor.iot.exceptions.BadDataException
 import com.robotutor.iot.exceptions.DataNotFoundException
-import com.robotutor.iot.models.AuditEvent
 import com.robotutor.iot.service.IdGeneratorService
 import com.robotutor.iot.utils.createMonoError
 import com.robotutor.iot.utils.models.UserData
@@ -36,7 +35,7 @@ class UserService(
                     .flatMap { userId ->
                         val user = UserDetails.from(userId = userId, userDetails = userDetails)
                         userRepository.save(user)
-                            .auditOnSuccess(event = AuditEvent.SIGN_UP, userId = userId)
+                            .auditOnSuccess(event = "USER_REGISTRATION", userId = userId)
                     }
             }
             .flatMap { user ->
