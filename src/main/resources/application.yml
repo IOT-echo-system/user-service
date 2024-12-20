@@ -25,9 +25,6 @@ app:
   utils:
     auth-service-base-url: ${AUTH_SERVICE_BASE_URL}
     internal-access-token: ${INTERNAL_ACCESS_TOKEN}
-    validate-path: /auth/validate
-    open-api-endpoints:
-      - /users/registration
   auth:
-    base-url: ${AUTH_SERVICE_BASE_URL}
+    base-url: ${app.utils.auth-service-base-url}
     save-password: '/auth/password'

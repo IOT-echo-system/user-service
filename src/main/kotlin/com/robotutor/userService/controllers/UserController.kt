@@ -1,7 +1,8 @@
 package com.robotutor.userService.controllers
 
+import com.robotutor.iot.utils.models.UserData
+import com.robotutor.userService.controllers.view.UserDetailsView
 import com.robotutor.userService.controllers.view.UserRegistrationRequest
-import com.robotutor.userService.controllers.view.UserSignUpResponse
 import com.robotutor.userService.models.UserDetails
 import com.robotutor.userService.services.UserService
 import org.springframework.validation.annotation.Validated
@@ -12,8 +13,13 @@ import reactor.core.publisher.Mono
 @RequestMapping("/users")
 class UserController(private val userService: UserService) {
     @PostMapping("/registration")
-    fun registration(@RequestBody @Validated userDetails: UserRegistrationRequest): Mono<UserSignUpResponse> {
-        return userService.register(userDetails).map { UserSignUpResponse.create(it) }
+    fun registration(@RequestBody @Validated userDetails: UserRegistrationRequest): Mono<UserDetailsView> {
+        return userService.register(userDetails).map { UserDetailsView.from(it) }
+    }
+
+    @GetMapping("/me")
+    fun getMyDetails(userData: UserData): Mono<UserDetailsView> {
+        return userService.getMyDetails(userData).map { UserDetailsView.from(it) }
     }
 
 //    @GetMapping("/user-details")

@@ -2,7 +2,6 @@ package com.robotutor.userService.controllers.view
 
 import com.robotutor.userService.models.UserDetails
 import com.robotutor.userService.models.UserId
-import com.robotutor.iot.utils.models.UserAuthenticationData
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Pattern
@@ -24,30 +23,20 @@ data class UserRegistrationRequest(
     val password: String
 )
 
-data class UserSignUpResponse(val email: String, val userId: UserId, val name: String) {
-    companion object {
-        fun create(userDetails: UserDetails): UserSignUpResponse {
-            return UserSignUpResponse(email = userDetails.email, userId = userDetails.userId, name = userDetails.name)
-        }
-    }
-}
 
-
-data class UserDetailsResponse(
+data class UserDetailsView(
     val userId: UserId,
     val name: String,
     val email: String,
     val registeredAt: LocalDateTime,
-    val roleId: String
 ) {
     companion object {
-        fun from(userDetails: UserDetails, authenticationData: UserAuthenticationData): UserDetailsResponse {
-            return UserDetailsResponse(
+        fun from(userDetails: UserDetails): UserDetailsView {
+            return UserDetailsView(
                 userId = userDetails.userId,
                 name = userDetails.name,
                 email = userDetails.email,
                 registeredAt = userDetails.registeredAt,
-                roleId = authenticationData.roleId
             )
         }
     }

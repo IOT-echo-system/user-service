@@ -6,6 +6,7 @@ import com.robotutor.iot.exceptions.DataNotFoundException
 import com.robotutor.iot.models.AuditEvent
 import com.robotutor.iot.service.IdGeneratorService
 import com.robotutor.iot.utils.createMonoError
+import com.robotutor.iot.utils.models.UserData
 import com.robotutor.loggingstarter.logOnError
 import com.robotutor.loggingstarter.logOnSuccess
 import com.robotutor.userService.controllers.view.UserRegistrationRequest
@@ -63,6 +64,10 @@ class UserService(
             .switchIfEmpty {
                 createMonoError(DataNotFoundException(IOTError.IOT0203))
             }
+    }
+
+    fun getMyDetails(userData: UserData): Mono<UserDetails> {
+        return userRepository.findByUserId(userData.userId)
     }
 }
 
