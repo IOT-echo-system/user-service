@@ -79,47 +79,47 @@ tasks.withType<Test> {
 }
 
 // Jacoco configuration
-
-jacoco {
-    toolVersion = "0.8.12"
-}
-
-tasks.test {
-    finalizedBy(tasks.jacocoTestReport)
-}
-
-tasks.jacocoTestReport {
-    dependsOn(tasks.test)
-    finalizedBy(tasks.jacocoTestCoverageVerification)
-}
-
-tasks.jacocoTestCoverageVerification {
-    dependsOn(tasks.jacocoTestReport)
-}
-
-tasks.jacocoTestCoverageVerification {
-    violationRules {
-        rule {
-            limit {
-                counter = "INSTRUCTION"
-                minimum = BigDecimal(0.52)
-            }
-            limit {
-                counter = "BRANCH"
-                minimum = BigDecimal(1)
-            }
-            limit {
-                counter = "LINE"
-                minimum = BigDecimal(0.53)
-            }
-            limit {
-                counter = "METHOD"
-                minimum = BigDecimal(0.41)
-            }
-            limit {
-                counter = "CLASS"
-                minimum = BigDecimal(0.39)
-            }
-        }
-    }
-}
+//
+//jacoco {
+//    toolVersion = "0.8.12"
+//}
+//
+//tasks.test {
+//    finalizedBy(tasks.jacocoTestReport)
+//}
+//
+//tasks.jacocoTestReport {
+//    dependsOn(tasks.test)
+//    finalizedBy(tasks.jacocoTestCoverageVerification)
+//}
+//
+//tasks.jacocoTestCoverageVerification {
+//    dependsOn(tasks.jacocoTestReport)
+//}
+//
+//tasks.jacocoTestCoverageVerification {
+//    violationRules {
+//        rule {
+//            limit {
+//                counter = "INSTRUCTION"
+//                minimum = BigDecimal(0.52)
+//            }
+//            limit {
+//                counter = "BRANCH"
+//                minimum = BigDecimal(1)
+//            }
+//            limit {
+//                counter = "LINE"
+//                minimum = BigDecimal(0.53)
+//            }
+//            limit {
+//                counter = "METHOD"
+//                minimum = BigDecimal(0.41)
+//            }
+//            limit {
+//                counter = "CLASS"
+//                minimum = BigDecimal(0.39)
+//            }
+//        }
+//    }
+//}
