@@ -6,6 +6,7 @@ import com.robotutor.iot.exceptions.DataNotFoundException
 import com.robotutor.iot.service.IdGeneratorService
 import com.robotutor.iot.utils.createMonoError
 import com.robotutor.iot.utils.models.UserData
+import com.robotutor.loggingstarter.Logger
 import com.robotutor.loggingstarter.logOnError
 import com.robotutor.loggingstarter.logOnSuccess
 import com.robotutor.userService.controllers.view.UserRegistrationRequest
@@ -25,6 +26,7 @@ class UserService(
     private val idGeneratorService: IdGeneratorService,
     private val authServiceGateway: AuthServiceGateway
 ) {
+    private val logger = Logger(this::class.java)
     fun register(userDetails: UserRegistrationRequest): Mono<UserDetails> {
         return userRepository.findByEmail(userDetails.email)
             .flatMap {
@@ -42,10 +44,12 @@ class UserService(
                 authServiceGateway.saveUserPassword(user.userId, userDetails.password).map { user }
             }
             .logOnSuccess(
+                logger,
                 message = "Successfully registered new User",
                 searchableFields = mapOf("email" to userDetails.email)
             )
             .logOnError(
+                logger,
                 errorMessage = "Failed to register new User",
                 searchableFields = mapOf("email" to userDetails.email)
             )
